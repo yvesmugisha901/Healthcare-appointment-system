@@ -1,0 +1,139 @@
+/* General Reset */
+body, h1, h2, h3, p, a, label, input, button {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    display: flex;
+    background-color: #f8f9fa;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    height: 100vh;
+    background-color: #007bff;
+    color: #fff;
+    padding: 20px;
+    position: fixed;
+}
+
+.sidebar h2 {
+    font-size: 22px;
+    margin-bottom: 30px;
+}
+
+.sidebar a {
+    display: block;
+    color: #fff;
+    text-decoration: none;
+    margin: 15px 0;
+    transition: 0.3s;
+}
+
+.sidebar a:hover {
+    color: #d1e7fd;
+}
+
+/* Main Content */
+.container {
+    display: flex;
+    width: 100%;
+}
+
+.main-content {
+    margin-left: 240px;
+    padding: 30px;
+    width: calc(100% - 240px);
+}
+
+/* Cards */
+.card, .chart-card {
+    background: #fff;
+    padding: 20px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.card h2, .chart-card h2 {
+    margin-bottom: 20px;
+    font-size: 20px;
+    color: #333;
+}
+
+/* Forms */
+form label {
+    display: block;
+    margin-bottom: 5px;
+    color: #555;
+}
+
+form input[type="text"],
+form input[type="email"],
+form input[type="password"] {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+form button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s;
+    font-size: 14px;
+}
+
+form button:hover {
+    background-color: #0056b3;
+}
+
+/* Chart Card */
+.chart-card {
+    height: 350px;
+    position: relative;
+}
+
+.chart-card canvas {
+    width: 100%;
+    height: 250px !important;
+}
+
+/* Download Button */
+.download-btn {
+    margin-top: 15px;
+    padding: 10px 15px;
+    background-color: #28a745;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.download-btn:hover {
+    background-color: #218838;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 180px;
+        padding: 15px;
+    }
+
+    .main-content {
+        margin-left: 200px;
+        padding: 20px;
+    }
+}
