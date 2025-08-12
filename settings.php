@@ -18,27 +18,6 @@ $stmt->bind_result($name, $email, $hashedPassword);
 $stmt->fetch();
 $stmt->close();
 
-// Handle profile update
-if (isset($_POST['update_profile'])) {
-    $newName = trim($_POST['name']);
-    $newEmail = trim($_POST['email']);
-
-    if (!empty($newName) && !empty($newEmail)) {
-        $stmt = $conn->prepare("UPDATE users SET name = ?, email = ? WHERE id = ?");
-        $stmt->bind_param("ssi", $newName, $newEmail, $user_id);
-        if ($stmt->execute()) {
-            $success = "Profile updated successfully!";
-            $name = $newName;
-            $email = $newEmail;
-        } else {
-            $error = "Failed to update profile.";
-        }
-        $stmt->close();
-    } else {
-        $error = "All fields are required.";
-    }
-}
-
 // Handle password change
 if (isset($_POST['change_password'])) {
     $current = $_POST['current_password'];
@@ -63,7 +42,10 @@ if (isset($_POST['change_password'])) {
         $stmt->close();
     }
 }
+
+$conn->close();
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -71,190 +53,251 @@ if (isset($_POST['change_password'])) {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Settings - Healthcare System</title>
 <style>
-  /* Reset some default */
-  * {
-    box-sizing: border-box;
-  }
-
   body, html {
-    margin: 0;
-    padding: 0;
+    margin: 0; padding: 0;
     font-family: Arial, sans-serif;
-    background-color: #f4f6f9;
-    height: 100%;
-  }
-
-  /* Sidebar styles (should match your sidebar.php) */
-  .sidebar {
-    width: 220px;
-    height: 100vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    background-color: #0056b3;
-    padding: 30px 20px;
-    color: #fff;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  }
-
-  /* Main content area, with left margin for sidebar */
-  .main-content {
-    margin-left: 220px; /* same width as sidebar */
-    padding: 40px 30px;
-    min-height: 100vh;
-  }
-
-  h2 {
+    background-color: #f5f7fa;
     color: #333;
-    text-align: center;
-    margin-bottom: 20px;
+    transition: background-color 0.3s, color 0.3s;
   }
-
-  .forms-container {
-    display: flex;
-    gap: 40px;
-    justify-content: center;
-    flex-wrap: wrap;
+  body.dark {
+    background-color: #121212;
+    color: #eee;
   }
-
-  form {
-    background: white;
-    padding: 25px 30px;
-    border-radius: 8px;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-    width: 450px;
-  }
-
-  form h3 {
-    margin-top: 0;
-    margin-bottom: 20px;
+  a {
     color: #007bff;
-    font-size: 20px;
-    text-align: center;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
   }
 
-  label {
-    display: block;
-    margin-top: 15px;
-    font-weight: 600;
-    color: #333;
-    font-size: 15px;
-  }
-
-  input[type="text"],
-  input[type="email"],
-  input[type="password"] {
-    width: 100%;
-    padding: 10px 12px;
-    margin-top: 6px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 15px;
-  }
-
-  button {
-    width: 100%;
-    padding: 12px 0;
-    margin-top: 25px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-
-  button:hover {
-    background-color: #0056b3;
-  }
-
-  .success, .error {
+  .container {
     max-width: 900px;
-    margin: 15px auto 30px auto;
-    padding: 12px 20px;
-    font-size: 15px;
+    margin: 40px auto;
+    padding: 0 20px;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .message {
+    max-width: 600px;
+    margin: 10px auto 30px;
+    padding: 15px 20px;
     border-radius: 6px;
     text-align: center;
   }
-
   .success {
     background-color: #d4edda;
     color: #155724;
     border-left: 6px solid #28a745;
   }
-
   .error {
     background-color: #f8d7da;
     color: #721c24;
     border-left: 6px solid #dc3545;
   }
 
+  .settings-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    justify-content: space-between;
+  }
+  .card {
+    background: white;
+    padding: 25px 30px;
+    border-radius: 8px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  body.dark .card {
+    background: #222;
+    color: #ddd;
+  }
+  .card h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-weight: 700;
+  }
+  label {
+    display: block;
+    margin: 12px 0 6px;
+    font-weight: 600;
+  }
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+  }
+  body.dark input[type="text"],
+  body.dark input[type="email"],
+  body.dark input[type="password"] {
+    background-color: #333;
+    border-color: #555;
+    color: #eee;
+  }
+  button {
+    margin-top: 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 0;
+    width: 100%;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+
+  .profile-link {
+    display: inline-block;
+    margin-bottom: 30px;
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+  }
+  .toggle-switch input {
+    opacity: 0;
+    width: 0; height: 0;
+  }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #ccc;
+    border-radius: 26px;
+    transition: .4s;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: .4s;
+  }
+  input:checked + .slider {
+    background-color: #007bff;
+  }
+  input:checked + .slider:before {
+    transform: translateX(24px);
+  }
+
   /* Responsive */
-  @media (max-width: 768px) {
-    .sidebar {
-      position: relative;
-      width: 100%;
-      height: auto;
-      padding: 20px 10px;
-      text-align: center;
-    }
-    .main-content {
-      margin-left: 0;
-      padding: 20px 10px;
-    }
-    .forms-container {
+  @media (max-width: 960px) {
+    .settings-grid {
       flex-direction: column;
-      gap: 30px;
+      align-items: center;
     }
-    form {
-      width: 100%;
-      padding: 20px;
+    .card {
+      max-width: 100%;
     }
   }
 </style>
 </head>
 <body>
 
-<?php include('sidebar.php'); ?>
+<div class="container">
 
-<div class="main-content">
-  <h2>Settings</h2>
+  <h1>Settings</h1>
 
-  <!-- Success/Error messages here, example: -->
-  <!-- <div class="success">Profile updated successfully!</div> -->
-  <!-- <div class="error">Error updating password.</div> -->
+  <?php if ($success): ?>
+    <div class="message success"><?php echo htmlspecialchars($success); ?></div>
+  <?php elseif ($error): ?>
+    <div class="message error"><?php echo htmlspecialchars($error); ?></div>
+  <?php endif; ?>
 
-  <div class="forms-container">
-    <!-- Update Profile Form -->
-    <form method="POST">
-      <h3>Update Profile</h3>
-      <label for="name">Name:</label>
-      <input type="text" id="name" name="name" required value="<?php echo htmlspecialchars($name ?? ''); ?>">
+  <!-- Profile link -->
+  <a href="patient_profile.php" class="profile-link">➡️ Edit Profile Information</a>
 
-      <label for="email">Email:</label>
-      <input type="email" id="email" name="email" required value="<?php echo htmlspecialchars($email ?? ''); ?>">
+  <div class="settings-grid">
 
-      <button type="submit" name="update_profile">Update Profile</button>
-    </form>
+    <!-- Change Password -->
+    <div class="card">
+      <h2>Change Password</h2>
+      <form method="POST" action="">
+        <label for="current_password">Current Password</label>
+        <input type="password" id="current_password" name="current_password" required>
 
-    <!-- Change Password Form -->
-    <form method="POST">
-      <h3>Change Password</h3>
-      <label for="current_password">Current Password:</label>
-      <input type="password" id="current_password" name="current_password" required>
+        <label for="new_password">New Password</label>
+        <input type="password" id="new_password" name="new_password" required>
 
-      <label for="new_password">New Password:</label>
-      <input type="password" id="new_password" name="new_password" required>
+        <label for="confirm_password">Confirm New Password</label>
+        <input type="password" id="confirm_password" name="confirm_password" required>
 
-      <label for="confirm_password">Confirm New Password:</label>
-      <input type="password" id="confirm_password" name="confirm_password" required>
+        <button type="submit" name="change_password">Update Password</button>
+      </form>
+    </div>
 
-      <button type="submit" name="change_password">Change Password</button>
-    </form>
+    <!-- Privacy & Legal -->
+    <div class="card">
+      <h2>Privacy & Legal</h2>
+      <p><a href="privacy_policy.php" target="_blank">Privacy Policy</a></p>
+      <p><a href="terms_conditions.php" target="_blank">Terms & Conditions</a></p>
+      <p><a href="help.php" target="_blank">Help & Support</a></p>
+    </div>
+
+    <!-- Notifications -->
+    <div class="card">
+      <h2>Notifications</h2>
+      <label class="toggle-switch">
+        <input type="checkbox" id="dark_mode_toggle" />
+        <span class="slider"></span>
+      </label>
+      <span style="margin-left: 10px;">Enable Dark Mode</span>
+    </div>
+
+    <!-- Logout -->
+    <div class="card" style="text-align: center;">
+      <h2>Account</h2>
+      <a href="logout.php" style="color: #dc3545; font-weight: 700;">Logout</a>
+    </div>
+
   </div>
 </div>
+
+<script>
+  // Dark mode toggle: save preference in localStorage and apply on load
+  const toggle = document.getElementById('dark_mode_toggle');
+  const body = document.body;
+
+  // Load saved preference
+  if(localStorage.getItem('darkMode') === 'enabled') {
+    body.classList.add('dark');
+    toggle.checked = true;
+  }
+
+  toggle.addEventListener('change', () => {
+    if(toggle.checked) {
+      body.classList.add('dark');
+      localStorage.setItem('darkMode', 'enabled');
+    } else {
+      body.classList.remove('dark');
+      localStorage.setItem('darkMode', 'disabled');
+    }
+  });
+</script>
 
 </body>
 </html>
