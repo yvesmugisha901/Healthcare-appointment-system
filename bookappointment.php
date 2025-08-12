@@ -1,17 +1,19 @@
 <?php
-session_start();
-require 'connect.php'; // Make sure this connects $conn
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+require 'connect.php';
 
-// Assuming patient is logged in and patient ID stored in session
+// Check logged-in patient
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'patient') {
     header('Location: login.php');
     exit;
 }
 
 $patientId = $_SESSION['user_id'];
-$patientName = "Jane Doe"; // Optional, you can fetch real name from DB if you want
+$patientName = "Jane Doe"; // Optional: fetch real name if needed
 
-// Fetch doctors from DB instead of hardcoding (optional but recommended)
+// Fetch doctors list
 $doctors = [];
 $docResult = $conn->query("SELECT id, name, specialization FROM users WHERE role='doctor'");
 if ($docResult) {
@@ -22,6 +24,7 @@ if ($docResult) {
 
 $successMessage = '';
 $errorMessage = '';
+$paymentLink = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $doctorId = $_POST['doctor'] ?? '';
@@ -32,16 +35,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$doctorId || !$date || !$time) {
         $errorMessage = "Please fill in all required fields.";
     } else {
-        $appointment_datetime = $date . ' ' . $time . ':00'; // Format for datetime
+        $appointment_datetime = $date . ' ' . $time . ':00';
 
-        // Prepare and bind to avoid SQL injection
         $stmt = $conn->prepare("INSERT INTO appointments (patient_id, doctor_id, appointment_datetime, notes) VALUES (?, ?, ?, ?)");
         if (!$stmt) {
             $errorMessage = "Prepare failed: " . $conn->error;
         } else {
             $stmt->bind_param("iiss", $patientId, $doctorId, $appointment_datetime, $notes);
             if ($stmt->execute()) {
+                $appointmentId = $stmt->insert_id;
                 $successMessage = "Appointment booked successfully for $date at $time.";
+                // Link to your payment page with appointment ID
+                $paymentLink = "patient_payment.php?appointment_id=$appointmentId";
             } else {
                 $errorMessage = "Error booking appointment: " . $stmt->error;
             }
@@ -59,43 +64,125 @@ $conn->close();
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Book Appointment - Healthcare System</title>
-  <link rel="stylesheet" href="css/appointment.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      padding: 40px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    select, input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      margin-top: 25px;
+      width: 100%;
+      padding: 12px;
+      background-color: #007bff;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .message {
+      padding: 15px;
+      margin-top: 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .payment-link {
+      text-align: center;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    .payment-link a {
+      color: #007bff;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .payment-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Book Appointment</h1>
-    <p>Welcome, <?php echo htmlspecialchars($patientName); ?>. Please fill the form below to book an appointment.</p>
 
-    <?php if ($successMessage): ?>
-      <div class="message success"><?php echo htmlspecialchars($successMessage); ?></div>
-    <?php endif; ?>
+<div class="container">
+  <h1>Book Appointment</h1>
+  <p>Welcome, <?php echo htmlspecialchars($patientName); ?>. Please fill the form below to book an appointment.</p>
 
-    <?php if ($errorMessage): ?>
-      <div class="message error"><?php echo htmlspecialchars($errorMessage); ?></div>
-    <?php endif; ?>
+  <?php if ($successMessage): ?>
+    <div class="message success"><?php echo htmlspecialchars($successMessage); ?></div>
+  <?php endif; ?>
 
-    <form method="POST" action="">
-      <label for="doctor">Choose Doctor <span style="color:red">*</span></label>
-      <select id="doctor" name="doctor" required>
-        <option value="">-- Select Doctor --</option>
-        <?php foreach ($doctors as $doc): ?>
-          <option value="<?php echo $doc['id']; ?>" <?php if (isset($doctorId) && $doctorId == $doc['id']) echo 'selected'; ?>>
-            <?php echo htmlspecialchars($doc['name'] . " ({$doc['specialization']})"); ?>
-          </option>
-        <?php endforeach; ?>
-      </select>
+  <?php if ($errorMessage): ?>
+    <div class="message error"><?php echo htmlspecialchars($errorMessage); ?></div>
+  <?php endif; ?>
 
-      <label for="date">Date <span style="color:red">*</span></label>
-      <input type="date" id="date" name="date" required value="<?php echo htmlspecialchars($date ?? ''); ?>" />
+  <form method="POST" action="">
+    <label for="doctor">Choose Doctor <span style="color:red">*</span></label>
+    <select id="doctor" name="doctor" required>
+      <option value="">-- Select Doctor --</option>
+      <?php foreach ($doctors as $doc): ?>
+        <option value="<?php echo $doc['id']; ?>" <?php if (isset($doctorId) && $doctorId == $doc['id']) echo 'selected'; ?>>
+          <?php echo htmlspecialchars($doc['name'] . " ({$doc['specialization']})"); ?>
+        </option>
+      <?php endforeach; ?>
+    </select>
 
-      <label for="time">Time <span style="color:red">*</span></label>
-      <input type="time" id="time" name="time" required value="<?php echo htmlspecialchars($time ?? ''); ?>" />
+    <label for="date">Date <span style="color:red">*</span></label>
+    <input type="date" id="date" name="date" required value="<?php echo htmlspecialchars($date ?? ''); ?>" />
 
-      <label for="notes">Notes (optional)</label>
-      <textarea id="notes" name="notes" placeholder="Reason for visit or special requests"><?php echo htmlspecialchars($notes ?? ''); ?></textarea>
+    <label for="time">Time <span style="color:red">*</span></label>
+    <input type="time" id="time" name="time" required value="<?php echo htmlspecialchars($time ?? ''); ?>" />
 
-      <button type="submit">Book Appointment</button>
-    </form>
-  </div>
+    <label for="notes">Notes (optional)</label>
+    <textarea id="notes" name="notes" placeholder="Reason for visit or special requests"><?php echo htmlspecialchars($notes ?? ''); ?></textarea>
+
+    <button type="submit">Book Appointment</button>
+  </form>
+
+  <?php if ($paymentLink): ?>
+    <div class="payment-link">
+      <p><a href="<?php echo htmlspecialchars($paymentLink); ?>">Click here to Pay Now for your appointment</a></p>
+    </div>
+  <?php endif; ?>
+</div>
+
 </body>
 </html>
