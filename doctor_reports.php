@@ -10,20 +10,34 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'doctor') {
 
 $doctorId = $_SESSION['user_id'];
 
-// Example: get summary reports (total appointments by status)
+// Prepare and execute query
 $stmt = $conn->prepare("
-    SELECT status, COUNT(*) AS count
+    SELECT LOWER(status) AS status_lower, COUNT(*) AS count
     FROM appointments
     WHERE doctor_id = ?
-    GROUP BY status
+    GROUP BY status_lower
 ");
 $stmt->bind_param("i", $doctorId);
 $stmt->execute();
 $result = $stmt->get_result();
 
 $reportData = [];
+$statusMap = [
+    'booked' => 'Scheduled',    // Map 'booked' in DB to 'Scheduled' in display
+    'completed' => 'Completed',
+    'done' => 'Completed',       // If you have 'done' as synonym
+    'cancelled' => 'Cancelled',
+    'canceled' => 'Cancelled',   // Handle US spelling variant
+    // add more mappings if needed
+];
+
 while ($row = $result->fetch_assoc()) {
-    $reportData[$row['status']] = $row['count'];
+    $dbStatus = $row['status_lower'];
+    $displayStatus = $statusMap[$dbStatus] ?? ucfirst($dbStatus);
+    if (!isset($reportData[$displayStatus])) {
+        $reportData[$displayStatus] = 0;
+    }
+    $reportData[$displayStatus] += $row['count'];
 }
 
 $stmt->close();
