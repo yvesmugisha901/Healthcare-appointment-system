@@ -4,7 +4,6 @@ require 'connect.php';
 
 $name = $email = $role = '';
 $error = '';
-$success = '';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -17,7 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($name) || empty($email) || empty($password) || !in_array($role, ['patient', 'doctor'])) {
         $error = 'Please fill in all required fields correctly.';
     } else {
-        // Escape inputs
         $name = $conn->real_escape_string($name);
         $email = $conn->real_escape_string($email);
         $role = $conn->real_escape_string($role);
@@ -39,8 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $insertStmt->bind_param("ssss", $name, $email, $passwordHash, $role);
 
             if ($insertStmt->execute()) {
-                $success = 'Registration successful! You can now <a href="login.php">login here</a>.';
-                $name = $email = $role = '';
+                // Set flash message and redirect to login
+                $_SESSION['success_message'] = "Registration successful! Please log in.";
+                header("Location: login.php");
+                exit;
             } else {
                 $error = 'Error: ' . $conn->error;
             }
@@ -139,10 +139,6 @@ $conn->close();
 
     <?php if (!empty($error)): ?>
       <div class="error"><?= htmlspecialchars($error) ?></div>
-    <?php endif; ?>
-
-    <?php if (!empty($success)): ?>
-      <div class="success"><?= $success ?></div>
     <?php endif; ?>
 
     <form method="POST" action="">
