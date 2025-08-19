@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'patient') {
 }
 
 $patientId = $_SESSION['user_id'];
-$patientName = "Jane Doe"; // Optional: fetch real name if needed
+$patientName = $_SESSION['name'] ?? 'Patient';
 
 // Fetch doctors list
 $doctors = [];
@@ -45,8 +45,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt->execute()) {
                 $appointmentId = $stmt->insert_id;
                 $successMessage = "Appointment booked successfully for $date at $time.";
-                // Link to your payment page with appointment ID
                 $paymentLink = "patient_payment.php?appointment_id=$appointmentId";
+
+                // Insert notification for doctor
+                $notifStmt = $conn->prepare("
+                    INSERT INTO notifications
+                    (appointment_id, type, sent_at, status, recipient_id, recipient_role, related_table, related_id)
+                    VALUES (?, ?, NOW(), 'unread', ?, 'doctor', 'appointments', ?)
+                ");
+                $type = 'appointment_created';
+                $notifStmt->bind_param("isii", $appointmentId, $type, $doctorId, $appointmentId);
+                $notifStmt->execute();
+                $notifStmt->close();
             } else {
                 $errorMessage = "Error booking appointment: " . $stmt->error;
             }
@@ -61,84 +71,24 @@ $conn->close();
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Book Appointment - Healthcare System</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f4f8;
-      padding: 40px;
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background: white;
-      padding: 25px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 25px;
-    }
-    label {
-      display: block;
-      margin-top: 15px;
-      font-weight: bold;
-    }
-    select, input, textarea {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-    }
-    button {
-      margin-top: 25px;
-      width: 100%;
-      padding: 12px;
-      background-color: #007bff;
-      border: none;
-      border-radius: 6px;
-      color: white;
-      font-size: 18px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    .message {
-      padding: 15px;
-      margin-top: 20px;
-      border-radius: 6px;
-      font-weight: bold;
-      text-align: center;
-    }
-    .success {
-      background-color: #d4edda;
-      color: #155724;
-    }
-    .error {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-    .payment-link {
-      text-align: center;
-      margin-top: 20px;
-      font-weight: bold;
-    }
-    .payment-link a {
-      color: #007bff;
-      text-decoration: none;
-      font-size: 18px;
-    }
-    .payment-link a:hover {
-      text-decoration: underline;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Book Appointment - Healthcare System</title>
+<style>
+    body { font-family: Arial, sans-serif; background: #f0f4f8; padding: 40px; }
+    .container { max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    h1 { text-align: center; margin-bottom: 25px; }
+    label { display: block; margin-top: 15px; font-weight: bold; }
+    select, input, textarea { width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; }
+    button { margin-top: 25px; width: 100%; padding: 12px; background-color: #007bff; border: none; border-radius: 6px; color: white; font-size: 18px; cursor: pointer; transition: background-color 0.3s ease; }
+    button:hover { background-color: #0056b3; }
+    .message { padding: 15px; margin-top: 20px; border-radius: 6px; font-weight: bold; text-align: center; }
+    .success { background-color: #d4edda; color: #155724; }
+    .error { background-color: #f8d7da; color: #721c24; }
+    .payment-link { text-align: center; margin-top: 20px; font-weight: bold; }
+    .payment-link a { color: #007bff; text-decoration: none; font-size: 18px; }
+    .payment-link a:hover { text-decoration: underline; }
+</style>
 </head>
 <body>
 
@@ -159,27 +109,27 @@ $conn->close();
     <select id="doctor" name="doctor" required>
       <option value="">-- Select Doctor --</option>
       <?php foreach ($doctors as $doc): ?>
-        <option value="<?php echo $doc['id']; ?>" <?php if (isset($doctorId) && $doctorId == $doc['id']) echo 'selected'; ?>>
-          <?php echo htmlspecialchars($doc['name'] . " ({$doc['specialization']})"); ?>
+        <option value="<?= $doc['id']; ?>" <?= (isset($doctorId) && $doctorId == $doc['id']) ? 'selected' : ''; ?>>
+            <?= htmlspecialchars($doc['name'] . " ({$doc['specialization']})"); ?>
         </option>
       <?php endforeach; ?>
     </select>
 
     <label for="date">Date <span style="color:red">*</span></label>
-    <input type="date" id="date" name="date" required value="<?php echo htmlspecialchars($date ?? ''); ?>" />
+    <input type="date" id="date" name="date" required value="<?= htmlspecialchars($date ?? ''); ?>" />
 
     <label for="time">Time <span style="color:red">*</span></label>
-    <input type="time" id="time" name="time" required value="<?php echo htmlspecialchars($time ?? ''); ?>" />
+    <input type="time" id="time" name="time" required value="<?= htmlspecialchars($time ?? ''); ?>" />
 
     <label for="notes">Notes (optional)</label>
-    <textarea id="notes" name="notes" placeholder="Reason for visit or special requests"><?php echo htmlspecialchars($notes ?? ''); ?></textarea>
+    <textarea id="notes" name="notes" placeholder="Reason for visit or special requests"><?= htmlspecialchars($notes ?? ''); ?></textarea>
 
     <button type="submit">Book Appointment</button>
   </form>
 
   <?php if ($paymentLink): ?>
     <div class="payment-link">
-      <p><a href="<?php echo htmlspecialchars($paymentLink); ?>">Click here to Pay Now for your appointment</a></p>
+      <p><a href="<?= htmlspecialchars($paymentLink); ?>">Click here to Pay Now for your appointment</a></p>
     </div>
   <?php endif; ?>
 </div>

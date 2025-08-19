@@ -9,8 +9,8 @@ $userId = $_SESSION['user_id'] ?? 0;
 $role = $_SESSION['role'] ?? '';
 $unreadCount = 0;
 
+// Count unread notifications depending on role
 if ($userId) {
-    // Count unread notifications depending on role
     if ($role === 'doctor') {
         $stmt = $conn->prepare("
             SELECT COUNT(*) FROM notifications n
@@ -26,7 +26,6 @@ if ($userId) {
         ");
         $stmt->bind_param("i", $userId);
     } elseif ($role === 'admin') {
-        // Admin sees all unread notifications
         $stmt = $conn->prepare("SELECT COUNT(*) FROM notifications WHERE status = 'unread'");
     } else {
         $stmt = null;
@@ -42,64 +41,68 @@ if ($userId) {
 ?>
 
 <div class="sidebar">
-    <h2>HealthSys</h2>
+    <div class="sidebar-header">
+        <i class="fa fa-stethoscope"></i>
+        <h2>HealthSys</h2>
+    </div>
     <ul>
         <?php if ($role === 'admin'): ?>
-            <li><a href="admin_dashboard.php">Dashboard</a></li>
-            <li><a href="appointments.php">Appointments</a></li>
-            <li><a href="calendar.php">Calendar</a></li>
+            <li><a href="admin_dashboard.php" class="active"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="appointments.php"><i class="fa fa-calendar-check"></i> Appointments</a></li>
+            <li><a href="calendar.php"><i class="fa fa-calendar"></i> Calendar</a></li>
             <li>
                 <a href="notifications.php">
-                    Notifications
+                    <i class="fa fa-bell"></i> Notifications
                     <?php if ($unreadCount > 0): ?>
                         <span class="notif-badge"><?= $unreadCount ?></span>
                     <?php endif; ?>
                 </a>
             </li>
-            <li><a href="reports.php">Reports</a></li>
-            <li><a href="settings.php">Settings</a></li>
-            <li><a href="manage_users.php">Manage Users</a></li>
-            <li><a href="logout.php" class="logout">Logout</a></li>
+            <li><a href="reports.php"><i class="fa fa-file-alt"></i> Reports</a></li>
+            <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
+            <li><a href="manage_users.php"><i class="fa fa-users"></i> Manage Users</a></li>
+            <li><a href="logout.php" class="logout"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
 
         <?php elseif ($role === 'doctor'): ?>
-            <li><a href="doctor_dash.php">Dashboard</a></li>
-            <li><a href="doctor_appointments.php">Appointments</a></li>
-            <li><a href="calendar.php">Calendar</a></li>
+            <li><a href="doctor_dash.php" class="active"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="doctor_appointments.php"><i class="fa fa-calendar-check"></i> Appointments</a></li>
+            <li><a href="calendar.php"><i class="fa fa-calendar"></i> Calendar</a></li>
             <li>
                 <a href="notifications.php">
-                    Notifications
+                    <i class="fa fa-bell"></i> Notifications
                     <?php if ($unreadCount > 0): ?>
                         <span class="notif-badge"><?= $unreadCount ?></span>
                     <?php endif; ?>
                 </a>
             </li>
-            <li><a href="doctor_reports.php">Reports</a></li>
-            <li><a href="settings.php">Settings</a></li>
-            <li><a href="logout.php" class="logout">Logout</a></li>
+            <li><a href="doctor_reports.php"><i class="fa fa-file-alt"></i> Reports</a></li>
+            <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
+            <li><a href="logout.php" class="logout"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
 
         <?php elseif ($role === 'patient'): ?>
-            <li><a href="patient_dashboard.php">Dashboard</a></li>
-            <li><a href="patient_appointments.php">Appointments</a></li>
-            <li><a href="calendar.php">Calendar</a></li>
+            <li><a href="patient_dashboard.php" class="active"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="patient_appointments.php"><i class="fa fa-calendar-check"></i> Appointments</a></li>
+            <li><a href="calendar.php"><i class="fa fa-calendar"></i> Calendar</a></li>
             <li>
                 <a href="notifications.php">
-                    Notifications
+                    <i class="fa fa-bell"></i> Notifications
                     <?php if ($unreadCount > 0): ?>
                         <span class="notif-badge"><?= $unreadCount ?></span>
                     <?php endif; ?>
                 </a>
             </li>
-            <li><a href="patient_reports.php">Reports</a></li>
-            <li><a href="settings.php">Settings</a></li>
-            <li><a href="logout.php" class="logout">Logout</a></li>
+            <li><a href="patient_reports.php"><i class="fa fa-file-alt"></i> Reports</a></li>
+            <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
+            <li><a href="logout.php" class="logout"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
 
         <?php else: ?>
-            <li><a href="login.php">Login</a></li>
+            <li><a href="login.php"><i class="fa fa-sign-in-alt"></i> Login</a></li>
         <?php endif; ?>
     </ul>
 </div>
 
 <style>
+/* Sidebar general */
 .sidebar {
   width: 220px;
   height: 100vh;
@@ -110,19 +113,33 @@ if ($userId) {
   position: fixed;
   top: 0;
   left: 0;
-  font-family: Arial, sans-serif;
+  font-family: 'Segoe UI', sans-serif;
   display: flex;
   flex-direction: column;
 }
 
-.sidebar h2 {
-  margin: 0 0 30px 0;
-  font-weight: 700;
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.sidebar-header i {
   font-size: 24px;
-  text-align: center;
+  color: #fff;
+}
+
+.sidebar-header h2 {
+  margin: 0;
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: 1px;
   user-select: none;
 }
 
+/* Menu */
 .sidebar ul {
   list-style: none;
   padding: 0;
@@ -131,7 +148,7 @@ if ($userId) {
 }
 
 .sidebar ul li {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .sidebar ul li a {
@@ -139,21 +156,29 @@ if ($userId) {
   text-decoration: none;
   font-size: 16px;
   padding: 10px 15px;
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  transition: background-color 0.3s ease;
+  gap: 10px;
+  transition: all 0.3s ease;
 }
 
 .sidebar ul li a:hover {
   background-color: #003d80;
   color: #fff;
+  transform: translateX(5px);
 }
 
+.sidebar ul li a.active {
+  background-color: #003366;
+  font-weight: 700;
+}
+
+/* Logout link */
 .sidebar ul li a.logout {
   color: #ff6b6b;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .sidebar ul li a.logout:hover {
@@ -161,34 +186,31 @@ if ($userId) {
   color: #fff;
 }
 
+/* Notification badge */
 .notif-badge {
   background: #ff4d4d;
   color: white;
   font-size: 12px;
-  font-weight: bold;
-  padding: 2px 8px;
-  border-radius: 12px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 50%;
   min-width: 20px;
   text-align: center;
-  margin-left: 8px;
 }
 
+/* Responsive */
 @media (max-width: 768px) {
   .sidebar {
     position: relative;
     width: 100%;
     height: auto;
     padding: 15px 10px;
-    display: flex;
     flex-direction: row;
     justify-content: space-around;
   }
 
-  .sidebar h2 {
-    font-size: 18px;
-    margin: 0;
-    padding-right: 10px;
-    line-height: 40px;
+  .sidebar-header {
+    margin-bottom: 0;
   }
 
   .sidebar ul {
@@ -196,6 +218,7 @@ if ($userId) {
     flex-direction: row;
     gap: 10px;
     flex-grow: 0;
+    overflow-x: auto;
   }
 
   .sidebar ul li {
@@ -203,9 +226,8 @@ if ($userId) {
   }
 
   .sidebar ul li a {
-    padding: 8px 12px;
+    padding: 8px 10px;
     font-size: 14px;
-    border-radius: 4px;
   }
 
   .notif-badge {

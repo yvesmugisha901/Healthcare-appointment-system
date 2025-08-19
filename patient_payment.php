@@ -8,28 +8,27 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'patient') {
     exit;
 }
 
-$patientId = $_SESSION['user_id'];
+$patientId     = $_SESSION['user_id'];
 $appointmentId = $_GET['appointment_id'] ?? null;
-$successMessage = '';
-$errorMessage = '';
+$errorMessage  = '';
 
 // Validate appointment belongs to patient
 if (!$appointmentId) {
     die("No appointment specified.");
 }
 
-$stmt = $conn->prepare("SELECT a.appointment_datetime, u.name AS doctor_name 
-                        FROM appointments a 
-                        JOIN users u ON a.doctor_id = u.id 
-                        WHERE a.id = ? AND a.patient_id = ?");
+$stmt = $conn->prepare("
+    SELECT a.appointment_datetime, u.name AS doctor_name 
+    FROM appointments a 
+    JOIN users u ON a.doctor_id = u.id 
+    WHERE a.id = ? AND a.patient_id = ?
+");
 $stmt->bind_param("ii", $appointmentId, $patientId);
 $stmt->execute();
 $result = $stmt->get_result();
-
 if ($result->num_rows === 0) {
     die("Appointment not found or you don't have permission.");
 }
-
 $appointment = $result->fetch_assoc();
 $stmt->close();
 
@@ -43,24 +42,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!in_array($method, $allowedMethods)) {
         $errorMessage = "Invalid payment method.";
     } else {
-        // Generate transaction ID (simple example)
         $transactionId = uniqid('TXN');
 
-        $stmt = $conn->prepare("INSERT INTO payments (appointment_id, amount, status, transaction_id, payment_date, payment_method) 
-                                VALUES (?, ?, 'pending', ?, NOW(), ?)");
+        $stmt = $conn->prepare("
+            INSERT INTO payments (appointment_id, amount, status, transaction_id, payment_date, payment_method) 
+            VALUES (?, ?, 'pending', ?, NOW(), ?)
+        ");
         $stmt->bind_param("idss", $appointmentId, $amount, $transactionId, $method);
         if ($stmt->execute()) {
-            $successMessage = "Payment recorded successfully! Transaction ID: $transactionId";
+            $paymentId = $stmt->insert_id; // <-- use this
+            $stmt->close();
+
+            // Redirect to receipt using payment_id (canonical)
+            header("Location: payment_receipt.php?payment_id={$paymentId}");
+            exit;
         } else {
             $errorMessage = "Payment failed: " . $stmt->error;
+            $stmt->close();
         }
-        $stmt->close();
     }
 }
 
 $conn->close();
 ?>
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -72,7 +76,6 @@ $conn->close();
         input, select, button { width: 100%; padding: 10px; margin-top: 8px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; }
         button { background-color: #007bff; color: white; border: none; cursor: pointer; margin-top: 20px; }
         button:hover { background-color: #0056b3; }
-        .success { background-color: #d4edda; color: #155724; padding: 10px; margin-top: 15px; border-radius: 5px; }
         .error { background-color: #f8d7da; color: #721c24; padding: 10px; margin-top: 15px; border-radius: 5px; }
     </style>
 </head>
@@ -81,10 +84,6 @@ $conn->close();
     <h2>Pay for Appointment</h2>
     <p><strong>Doctor:</strong> <?php echo htmlspecialchars($appointment['doctor_name']); ?></p>
     <p><strong>Date & Time:</strong> <?php echo htmlspecialchars($appointment['appointment_datetime']); ?></p>
-
-    <?php if ($successMessage): ?>
-        <div class="success"><?php echo $successMessage; ?></div>
-    <?php endif; ?>
 
     <?php if ($errorMessage): ?>
         <div class="error"><?php echo $errorMessage; ?></div>
