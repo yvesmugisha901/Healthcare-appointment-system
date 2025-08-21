@@ -92,12 +92,15 @@ body {
     color: #fff;
 }
 
-/* Main content */
 .main-content {
     flex: 1;
     padding: 30px;
-    margin-left: 220px;
+    margin-right: 200px;
+    margin-left:10px;
     box-sizing: border-box;
+    display: flex;             
+    flex-direction: column;     
+    align-items: center;        
 }
 
 h1 {
@@ -112,6 +115,12 @@ h1 {
     box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     padding: 20px;
     overflow: hidden;
+    margin: 0 auto;    
+    max-width: 900px;   /* Restrict width so it’s not full screen */
+    margin-left: auto;
+    margin-right: auto;
+
+
 }
 
 .table-card table {

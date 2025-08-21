@@ -78,7 +78,16 @@ $conn->close();
         button:hover { background-color: #0056b3; }
         .error { background-color: #f8d7da; color: #721c24; padding: 10px; margin-top: 15px; border-radius: 5px; }
         .success { background-color: #d4edda; color: #155724; padding: 10px; margin-top: 15px; border-radius: 5px; }
+        .dashboard-link { text-align:center; margin-top: 20px; }
+        .dashboard-link a { display:inline-block; padding:10px 20px; background:#28a745; color:#fff; text-decoration:none; border-radius:5px; font-weight:bold; }
+        .dashboard-link a:hover { background:#218838; }
     </style>
+    <?php if($successMessage): ?>
+    <script>
+        // Redirect to dashboard after 5 seconds
+        setTimeout(()=>{ window.location.href='patient_dashboard.php'; }, 5000);
+    </script>
+    <?php endif; ?>
 </head>
 <body>
 <div class="container">
@@ -92,8 +101,11 @@ $conn->close();
 
     <?php if ($successMessage): ?>
         <div class="success"><?= $successMessage; ?></div>
-    <?php endif; ?>
-
+        <div class="dashboard-link">
+            <a href="patient_dashboard.php">Go Back to Dashboard</a>
+        </div>
+        <p style="text-align:center;font-size:12px;color:#555;">You will be automatically redirected in 5 seconds.</p>
+    <?php else: ?>
     <form method="POST" action="">
         <label for="amount">Amount (USD):</label>
         <input type="number" name="amount" id="amount" min="1" step="0.01" required />
@@ -108,6 +120,7 @@ $conn->close();
 
         <button type="submit">Pay Now</button>
     </form>
+    <?php endif; ?>
 </div>
 </body>
 </html>
