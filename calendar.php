@@ -2,9 +2,30 @@
 session_start();
 require 'connect.php';
 
-$user_id = $_SESSION['user_id'] ?? 1;
+$user_id = $_SESSION['user_id'] ?? 0;
 
-// Fetch appointments where user is patient or doctor
+if (!$user_id) {
+    header("Location: login.php");
+    exit();
+}
+
+// Fetch user role
+$stmt = $conn->prepare("SELECT role FROM users WHERE id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$stmt->bind_result($userRole);
+$stmt->fetch();
+$stmt->close();
+
+// Determine dashboard link
+$dashboardLink = match($userRole) {
+    'doctor' => 'doctor_dash.php',
+    'patient' => 'patient_dashboard.php',
+    'admin' => 'admin_dashboard.php',
+    default => 'login.php',
+};
+
+// Fetch appointments
 $sql = "SELECT a.id, a.appointment_datetime, a.status, a.notes, 
                p.name AS patient_name, d.name AS doctor_name
         FROM appointments a
@@ -34,50 +55,53 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 ?>
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Appointment Calendar</title>
-
-    <!-- FullCalendar CSS & JS -->
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 20px;
-            margin-left: 200px; /* width of sidebar */
-            background-color: #f4f6f9;
-            min-height: 100vh;
-        }
-
-        h2 {
-            margin-bottom: 20px;
-        }
-
-        #calendar {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Appointment Calendar</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<style>
+body { font-family: Arial, sans-serif; margin: 0; display: flex; background: #f4f6f9; }
+.sidebar {
+    width: 220px;
+    background-color: #1e3a8a;
+    color: white;
+    padding: 25px 20px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+.sidebar h2 { margin-bottom: 30px; font-size: 24px; display: flex; align-items: center; gap: 10px; }
+.sidebar h2 i { font-size: 28px; }
+.sidebar a {
+    color: #cce5ff;
+    text-decoration: none;
+    margin: 10px 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.sidebar a.active, .sidebar a:hover { background-color: #3b82f6; color: #fff; }
+.main-content { flex: 1; padding: 20px; }
+#calendar { max-width: 900px; margin: 0 auto; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+h2 { margin-bottom: 20px; text-align: center; color: #1e3a8a; }
+</style>
 </head>
 <body>
 
-<?php include 'sidebar.php'; ?>
+<aside class="sidebar">
+    <h2><i class="fa fa-stethoscope"></i> HealthSys</h2>
+    <a href="<?= $dashboardLink ?>"><i class="fa fa-tachometer-alt"></i> Dashboard</a>
+    <a href="appointments.php"><i class="fa fa-calendar-check"></i> Appointments</a>
+    <a href="settings.php"><i class="fa fa-cog"></i> Settings</a>
+    <a href="logout.php"><i class="fa fa-sign-out-alt"></i> Logout</a>
+</aside>
 
 <div class="main-content">
     <h2>Appointment Calendar</h2>

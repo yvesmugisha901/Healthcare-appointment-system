@@ -38,6 +38,8 @@ if ($userId) {
         $stmt->close();
     }
 }
+
+$currentPage = basename($_SERVER['PHP_SELF']);
 ?>
 
 <div class="sidebar">
@@ -47,52 +49,53 @@ if ($userId) {
     </div>
     <ul>
         <?php if ($role === 'admin'): ?>
-            <li><a href="admin_dashboard.php" class="active"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
-            <li><a href="appointments.php"><i class="fa fa-calendar-check"></i> Appointments</a></li>
-            <li><a href="calendar.php"><i class="fa fa-calendar"></i> Calendar</a></li>
+            <li><a href="admin_dashboard.php" class="<?= ($currentPage=='admin_dashboard.php')?'active':'' ?>"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="appointments.php" class="<?= ($currentPage=='appointments.php')?'active':'' ?>"><i class="fa fa-calendar-check"></i> Appointments</a></li>
+            <li><a href="calendar.php" class="<?= ($currentPage=='calendar.php')?'active':'' ?>"><i class="fa fa-calendar"></i> Calendar</a></li>
             <li>
-                <a href="notifications.php">
+                <a href="notifications.php" class="<?= ($currentPage=='notifications.php')?'active':'' ?>">
                     <i class="fa fa-bell"></i> Notifications
                     <?php if ($unreadCount > 0): ?>
                         <span class="notif-badge"><?= $unreadCount ?></span>
                     <?php endif; ?>
                 </a>
             </li>
-            <li><a href="reports.php"><i class="fa fa-file-alt"></i> Reports</a></li>
-            <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
-            <li><a href="manage_users.php"><i class="fa fa-users"></i> Manage Users</a></li>
+            <li><a href="reports.php" class="<?= ($currentPage=='reports.php')?'active':'' ?>"><i class="fa fa-file-alt"></i> Reports</a></li>
+            <li><a href="settings.php" class="<?= ($currentPage=='settings.php')?'active':'' ?>"><i class="fa fa-cog"></i> Settings</a></li>
+            <li><a href="manage_users.php" class="<?= ($currentPage=='manage_users.php')?'active':'' ?>"><i class="fa fa-users"></i> Manage Users</a></li>
             <li><a href="logout.php" class="logout"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
 
         <?php elseif ($role === 'doctor'): ?>
-            <li><a href="doctor_dash.php" class="active"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
-            <li><a href="doctor_appointments.php"><i class="fa fa-calendar-check"></i> Appointments</a></li>
-            <li><a href="calendar.php"><i class="fa fa-calendar"></i> Calendar</a></li>
+            <li><a href="doctor_dash.php" class="<?= ($currentPage=='doctor_dash.php')?'active':'' ?>"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="doctor_appointments.php" class="<?= ($currentPage=='doctor_appointments.php')?'active':'' ?>"><i class="fa fa-calendar-check"></i> Appointments</a></li>
+            <li><a href="calendar.php" class="<?= ($currentPage=='calendar.php')?'active':'' ?>"><i class="fa fa-calendar"></i> Calendar</a></li>
             <li>
-                <a href="notifications.php">
+                <a href="notifications.php" class="<?= ($currentPage=='notifications.php')?'active':'' ?>">
                     <i class="fa fa-bell"></i> Notifications
                     <?php if ($unreadCount > 0): ?>
                         <span class="notif-badge"><?= $unreadCount ?></span>
                     <?php endif; ?>
                 </a>
             </li>
-            <li><a href="doctor_reports.php"><i class="fa fa-file-alt"></i> Reports</a></li>
-            <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
+            <li><a href="doctor_reports.php" class="<?= ($currentPage=='doctor_reports.php')?'active':'' ?>"><i class="fa fa-file-alt"></i> Reports</a></li>
+            <li><a href="settings.php" class="<?= ($currentPage=='settings.php')?'active':'' ?>"><i class="fa fa-cog"></i> Settings</a></li>
             <li><a href="logout.php" class="logout"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
 
         <?php elseif ($role === 'patient'): ?>
-            <li><a href="patient_dashboard.php" class="active"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
-            <li><a href="patient_appointments.php"><i class="fa fa-calendar-check"></i> Appointments</a></li>
-            <li><a href="calendar.php"><i class="fa fa-calendar"></i> Calendar</a></li>
+            <li><a href="patient_dashboard.php" class="<?= ($currentPage=='patient_dashboard.php')?'active':'' ?>"><i class="fa fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="bookappointment.php" class="<?= ($currentPage=='bookappointment.php')?'active':'' ?>"><i class="fa fa-calendar-check"></i> Book Appointment</a></li>
+            <li><a href="calendar.php" class="<?= ($currentPage=='calendar.php')?'active':'' ?>"><i class="fa fa-calendar"></i> Calendar</a></li>
             <li>
-                <a href="notifications.php">
+                <a href="notifications.php" class="<?= ($currentPage=='notifications.php')?'active':'' ?>">
                     <i class="fa fa-bell"></i> Notifications
                     <?php if ($unreadCount > 0): ?>
                         <span class="notif-badge"><?= $unreadCount ?></span>
                     <?php endif; ?>
                 </a>
             </li>
-            <li><a href="patient_reports.php"><i class="fa fa-file-alt"></i> Reports</a></li>
-            <li><a href="settings.php"><i class="fa fa-cog"></i> Settings</a></li>
+            <li><a href="payment_history.php" class="<?= ($currentPage=='payment_history.php')?'active':'' ?>"><i class="fa fa-credit-card"></i> Payment History</a></li>
+            <li><a href="patientprofile.php" class="<?= ($currentPage=='patientprofile.php')?'active':'' ?>"><i class="fa fa-user"></i> Profile</a></li>
+            <li><a href="settings.php" class="<?= ($currentPage=='settings.php')?'active':'' ?>"><i class="fa fa-cog"></i> Settings</a></li>
             <li><a href="logout.php" class="logout"><i class="fa fa-sign-out-alt"></i> Logout</a></li>
 
         <?php else: ?>
@@ -102,11 +105,11 @@ if ($userId) {
 </div>
 
 <style>
-/* Sidebar general */
+/* Sidebar styling - consistent for all roles */
 .sidebar {
   width: 220px;
   height: 100vh;
-  background-color: #0056b3;
+  background-color: #1e3a8a;
   color: #fff;
   padding: 30px 20px;
   box-sizing: border-box;
@@ -165,7 +168,7 @@ if ($userId) {
 }
 
 .sidebar ul li a:hover {
-  background-color: #003d80;
+  background-color: #3b82f6;
   color: #fff;
   transform: translateX(5px);
 }

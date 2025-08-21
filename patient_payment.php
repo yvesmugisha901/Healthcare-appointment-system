@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'patient') {
 $patientId     = $_SESSION['user_id'];
 $appointmentId = $_GET['appointment_id'] ?? null;
 $errorMessage  = '';
+$successMessage = '';
 
 // Validate appointment belongs to patient
 if (!$appointmentId) {
@@ -32,6 +33,7 @@ if ($result->num_rows === 0) {
 $appointment = $result->fetch_assoc();
 $stmt->close();
 
+// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $amount = floatval($_POST['amount']);
     $method = $_POST['payment_method'] ?? '';
@@ -44,18 +46,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $transactionId = uniqid('TXN');
 
+        // Record payment as 'pending'
         $stmt = $conn->prepare("
             INSERT INTO payments (appointment_id, amount, status, transaction_id, payment_date, payment_method) 
             VALUES (?, ?, 'pending', ?, NOW(), ?)
         ");
         $stmt->bind_param("idss", $appointmentId, $amount, $transactionId, $method);
         if ($stmt->execute()) {
-            $paymentId = $stmt->insert_id; // <-- use this
+            $paymentId = $stmt->insert_id;
             $stmt->close();
-
-            // Redirect to receipt using payment_id (canonical)
-            header("Location: payment_receipt.php?payment_id={$paymentId}");
-            exit;
+            $successMessage = "Payment recorded successfully! Your transaction ID is: $transactionId";
         } else {
             $errorMessage = "Payment failed: " . $stmt->error;
             $stmt->close();
@@ -77,16 +77,21 @@ $conn->close();
         button { background-color: #007bff; color: white; border: none; cursor: pointer; margin-top: 20px; }
         button:hover { background-color: #0056b3; }
         .error { background-color: #f8d7da; color: #721c24; padding: 10px; margin-top: 15px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; padding: 10px; margin-top: 15px; border-radius: 5px; }
     </style>
 </head>
 <body>
 <div class="container">
     <h2>Pay for Appointment</h2>
-    <p><strong>Doctor:</strong> <?php echo htmlspecialchars($appointment['doctor_name']); ?></p>
-    <p><strong>Date & Time:</strong> <?php echo htmlspecialchars($appointment['appointment_datetime']); ?></p>
+    <p><strong>Doctor:</strong> <?= htmlspecialchars($appointment['doctor_name']); ?></p>
+    <p><strong>Date & Time:</strong> <?= htmlspecialchars($appointment['appointment_datetime']); ?></p>
 
     <?php if ($errorMessage): ?>
-        <div class="error"><?php echo $errorMessage; ?></div>
+        <div class="error"><?= $errorMessage; ?></div>
+    <?php endif; ?>
+
+    <?php if ($successMessage): ?>
+        <div class="success"><?= $successMessage; ?></div>
     <?php endif; ?>
 
     <form method="POST" action="">

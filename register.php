@@ -15,6 +15,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Basic validation
     if (empty($name) || empty($email) || empty($password) || !in_array($role, ['patient', 'doctor'])) {
         $error = 'Please fill in all required fields correctly.';
+    } 
+    // Strong password validation
+    elseif(strlen($password) < 8){
+        $error = 'Password must be at least 8 characters long.';
+    } elseif(!preg_match('/[A-Z]/', $password)){
+        $error = 'Password must contain at least one uppercase letter.';
+    } elseif(!preg_match('/[a-z]/', $password)){
+        $error = 'Password must contain at least one lowercase letter.';
+    } elseif(!preg_match('/[0-9]/', $password)){
+        $error = 'Password must contain at least one number.';
+    } elseif(!preg_match('/[\W]/', $password)){
+        $error = 'Password must contain at least one special character.';
     } else {
         $name = $conn->real_escape_string($name);
         $email = $conn->real_escape_string($email);
@@ -32,12 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Hash password
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
-            // Insert user
-            $insertStmt = $conn->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)");
+            // Insert user with optional 2FA column (default 0)
+            $insertStmt = $conn->prepare("INSERT INTO users (name, email, password, role, twofa_enabled) VALUES (?, ?, ?, ?, 0)");
             $insertStmt->bind_param("ssss", $name, $email, $passwordHash, $role);
 
             if ($insertStmt->execute()) {
-                // Set flash message and redirect to login
                 $_SESSION['success_message'] = "Registration successful! Please log in.";
                 header("Location: login.php");
                 exit;
@@ -58,104 +69,95 @@ $conn->close();
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Register - Healthcare Appointment System</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f4f8;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-    .register-container {
-      background: white;
-      padding: 2rem;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      width: 360px;
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
-    input, select {
-      width: 100%;
-      padding: 0.5rem;
-      margin: 0.5rem 0 1rem 0;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      box-sizing: border-box;
-      font-size: 1rem;
-    }
-    button {
-      width: 100%;
-      padding: 0.7rem;
-      background-color: #007BFF;
-      border: none;
-      color: white;
-      font-weight: bold;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: background-color 0.3s ease;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    .login-link {
-      margin-top: 1rem;
-      text-align: center;
-      font-size: 0.9rem;
-    }
-    .login-link a {
-      color: #007BFF;
-      text-decoration: none;
-      font-weight: 600;
-    }
-    .login-link a:hover {
-      text-decoration: underline;
-    }
-    .error {
-      color: #d9534f;
-      text-align: center;
-      margin-bottom: 1rem;
-      font-weight: 600;
-    }
-    .success {
-      color: #28a745;
-      text-align: center;
-      margin-bottom: 1rem;
-      font-weight: 600;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Register - Healthcare Appointment System</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:"Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
+body {
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+}
+.register-container {
+    background:#fff;
+    padding:30px 40px;
+    border-radius:12px;
+    box-shadow:0px 8px 25px rgba(0,0,0,0.15);
+    width:360px;
+    text-align:center;
+}
+.register-container h2 { margin-bottom:20px; font-size:24px; color:#333; }
+.register-container label {
+    display:block;
+    text-align:left;
+    margin:12px 0 6px;
+    font-size:14px;
+    font-weight:bold;
+    color:#555;
+}
+.register-container input,
+.register-container select {
+    width:100%;
+    padding:10px 12px;
+    margin-bottom:15px;
+    border:1px solid #ddd;
+    border-radius:8px;
+    outline:none;
+    transition:0.3s;
+}
+.register-container input:focus,
+.register-container select:focus {
+    border-color:#4facfe;
+    box-shadow:0px 0px 6px rgba(79,172,254,0.6);
+}
+.register-container button {
+    width:100%;
+    padding:12px;
+    background:#4facfe;
+    border:none;
+    border-radius:8px;
+    color:white;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.3s;
+}
+.register-container button:hover { background:#008cff; }
+.error { color:#d9534f; font-weight:bold; margin-bottom:10px; }
+.success { color:#28a745; font-weight:bold; margin-bottom:10px; }
+.login-link { margin-top:15px; font-size:14px; color:#555; }
+.login-link a { color:#4facfe; font-weight:bold; text-decoration:none; }
+.login-link a:hover { text-decoration:underline; }
+</style>
 </head>
 <body>
-  <div class="register-container">
-    <h2>Create an Account</h2>
 
-    <?php if (!empty($error)): ?>
-      <div class="error"><?= htmlspecialchars($error) ?></div>
-    <?php endif; ?>
+<div class="register-container">
+<h2>Create an Account</h2>
 
-    <form method="POST" action="">
-      <input type="text" name="name" placeholder="Full Name" required value="<?= htmlspecialchars($name) ?>" />
-      <input type="email" name="email" placeholder="Email Address" required value="<?= htmlspecialchars($email) ?>" />
-      <input type="password" name="password" placeholder="Password" required />
-      <select name="role" required>
+<?php if (!empty($error)): ?>
+    <div class="error"><?= htmlspecialchars($error) ?></div>
+<?php endif; ?>
+
+<form method="POST" action="">
+    <input type="text" name="name" placeholder="Full Name" required value="<?= htmlspecialchars($name) ?>" />
+    <input type="email" name="email" placeholder="Email Address" required value="<?= htmlspecialchars($email) ?>" />
+    <input type="password" name="password" placeholder="Password" required />
+    <select name="role" required>
         <option value="" disabled <?= !$role ? 'selected' : '' ?>>Select Role</option>
         <option value="patient" <?= $role === 'patient' ? 'selected' : '' ?>>Patient</option>
         <option value="doctor" <?= $role === 'doctor' ? 'selected' : '' ?>>Doctor</option>
-      </select>
-      <button type="submit">Sign Up</button>
-    </form>
+    </select>
+    <button type="submit">Sign Up</button>
+</form>
 
-    <div class="login-link">
-      Already have an account? <a href="login.php">Login here</a>
-    </div>
-  </div>
+<div class="login-link">
+    Already have an account? <a href="login.php">Login here</a>
+</div>
+</div>
+
 </body>
 </html>

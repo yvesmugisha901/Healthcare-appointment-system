@@ -37,11 +37,20 @@ if ($row = $result->fetch_assoc()) $activeUsers = $row['active'];
 <title>Admin Dashboard - HealthSys</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-/* Reset & body */
+:root {
+    --primary: #1e3a8a;
+    --primary-light: #3b82f6;
+    --success: #28a745;
+    --info: #17a2b8;
+    --danger: #dc3545;
+    --text: #333;
+    --bg: #f0f2f5;
+}
+
 body {
   margin: 0;
   font-family: 'Segoe UI', sans-serif;
-  background: #f0f2f5;
+  background: var(--bg);
   display: flex;
   min-height: 100vh;
 }
@@ -49,7 +58,7 @@ body {
 /* Sidebar */
 .sidebar {
   width: 220px;
-  background-color: #0056b3;
+  background-color: var(--primary);
   color: #fff;
   padding: 30px 20px;
   box-sizing: border-box;
@@ -57,6 +66,7 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: all 0.3s ease;
 }
 
 .sidebar h2 {
@@ -98,10 +108,11 @@ body {
 }
 
 h1 {
-  color: #333;
+  color: var(--text);
   margin-bottom: 30px;
 }
 
+/* Dashboard Cards */
 .dashboard-cards {
   display: flex;
   gap: 20px;
@@ -125,7 +136,7 @@ h1 {
 }
 
 .card h3 {
-  color: #007BFF;
+  color: var(--primary);
   margin-bottom: 15px;
   font-weight: 600;
 }
@@ -134,6 +145,30 @@ h1 {
   font-size: 28px;
   font-weight: bold;
   margin: 0;
+}
+
+/* Card-style tables for future use */
+.table-card {
+  max-width: 900px;
+  margin: 25px auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  overflow: hidden;
+  padding: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.table-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+}
+
+.table-card h2 {
+  margin-bottom: 15px;
+  color: var(--primary);
+  font-size: 22px;
+  text-align: center;
 }
 
 /* Responsive */
@@ -163,7 +198,7 @@ h1 {
       <a href="admin_dashboard.php" class="active"><i class="fa fa-home"></i> Home</a>
       <a href="manage_users.php"><i class="fa fa-users"></i> Manage Users</a>
       <a href="appointments.php"><i class="fa fa-calendar-check"></i> Appointments</a>
-      <a href="payments.php"><i class="fa fa-credit-card"></i> Payments Management</a>
+      <a href="payments.php"><i class="fa fa-credit-card"></i> Payments</a>
       <a href="reports.php"><i class="fa fa-file-alt"></i> Reports</a>
       <a href="settings.php"><i class="fa fa-cog"></i> Settings</a>
       <a href="logout.php" class="logout"><i class="fa fa-sign-out-alt"></i> Logout</a>
@@ -186,6 +221,21 @@ h1 {
         <p><?= $activeUsers ?></p>
       </div>
     </div>
+
+    <!-- Example for future tables (users, appointments) -->
+    <!--
+    <div class="table-card">
+      <h2>Recent Users</h2>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          ...
+        </tbody>
+      </table>
+    </div>
+    -->
   </main>
 </body>
 </html>
