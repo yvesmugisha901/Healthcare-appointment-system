@@ -16,18 +16,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($name) || empty($email) || empty($password) || !in_array($role, ['patient', 'doctor'])) {
         $error = 'Please fill in all required fields correctly.';
     } 
-    // Strong password validation
-    elseif(strlen($password) < 8){
-        $error = 'Password must be at least 8 characters long.';
-    } elseif(!preg_match('/[A-Z]/', $password)){
-        $error = 'Password must contain at least one uppercase letter.';
-    } elseif(!preg_match('/[a-z]/', $password)){
-        $error = 'Password must contain at least one lowercase letter.';
-    } elseif(!preg_match('/[0-9]/', $password)){
-        $error = 'Password must contain at least one number.';
-    } elseif(!preg_match('/[\W]/', $password)){
-        $error = 'Password must contain at least one special character.';
-    } else {
+    // Simple password validation (only minimum length)
+    elseif(strlen($password) < 4){
+        $error = 'Password must be at least 4 characters long.';
+    } 
+    else {
         $name = $conn->real_escape_string($name);
         $email = $conn->real_escape_string($email);
         $role = $conn->real_escape_string($role);

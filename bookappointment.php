@@ -31,6 +31,20 @@ if ($availResult) {
     }
 }
 
+// Fetch booked appointments
+$bookedAppointments = [];
+$apptResult = $conn->query("SELECT doctor_id, DATE(appointment_datetime) AS date, TIME(appointment_datetime) AS time FROM appointments WHERE TRIM(LOWER(status))='booked'");
+if ($apptResult) {
+    while ($row = $apptResult->fetch_assoc()) {
+        $did = $row['doctor_id'];
+        $date = $row['date'];
+        $time = $row['time'];
+        if (!isset($bookedAppointments[$did])) $bookedAppointments[$did] = [];
+        if (!isset($bookedAppointments[$did][$date])) $bookedAppointments[$did][$date] = [];
+        $bookedAppointments[$did][$date][] = $time;
+    }
+}
+
 $successMessage = '';
 $errorMessage = '';
 $paymentLink = '';
@@ -79,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $conn->close();
 $daysOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+$appointmentDuration = 60; // duration in minutes
 ?>
 
 <!DOCTYPE html>
@@ -158,7 +173,9 @@ const dateInput = document.getElementById('date');
 const timeSelect = document.getElementById('time');
 
 const availability = <?=json_encode($availability)?>;
+const bookedAppointments = <?=json_encode($bookedAppointments)?>;
 const daysOfWeek = <?=json_encode($daysOfWeek)?>;
+const appointmentDuration = <?= $appointmentDuration ?>;
 
 // Filter doctors by specialization
 specSelect.addEventListener('change', ()=>{
@@ -167,11 +184,10 @@ specSelect.addEventListener('change', ()=>{
         if(opt.value==='') { opt.style.display=''; continue; }
         opt.style.display = (opt.dataset.specialization===spec)?'':'none';
     }
-    doctorsSelect.value='';
-    dateInput.value=''; timeSelect.innerHTML='<option value="">-- Select Time --</option>';
+    doctorsSelect.value=''; dateInput.value=''; timeSelect.innerHTML='<option value="">-- Select Time --</option>';
 });
 
-// Update datepicker to allowed days
+// Update datepicker and time slots
 doctorsSelect.addEventListener('change', ()=>{
     dateInput.value=''; timeSelect.innerHTML='<option value="">-- Select Time --</option>';
     const docId = doctorsSelect.value;
@@ -186,22 +202,50 @@ doctorsSelect.addEventListener('change', ()=>{
     dateInput.max = maxDate.toISOString().split('T')[0];
 
     dateInput.oninput = ()=>{
-        const selectedDate = new Date(dateInput.value);
-        const dayStr = selectedDate.toLocaleDateString('en-US',{weekday:'long'});
+        const selectedDate = dateInput.value;
+        const dayStr = new Date(selectedDate).toLocaleDateString('en-US',{weekday:'long'});
+
         if(!docAvail[dayStr]){
             alert('Doctor is not available on this day. Pick another.');
             dateInput.value=''; timeSelect.innerHTML='<option value="">-- Select Time --</option>';
-        } else {
-            // Populate time slots
-            const slots = docAvail[dayStr];
-            timeSelect.innerHTML='<option value="">-- Select Time --</option>';
-            slots.forEach(s=>{
-                const opt = document.createElement('option');
-                opt.value=s.start;
-                opt.textContent=s.start+' - '+s.end;
-                timeSelect.appendChild(opt);
-            });
+            return;
         }
+
+        // Split availability into appointmentDuration slots
+        timeSelect.innerHTML='<option value="">-- Select Time --</option>';
+        const slots = docAvail[dayStr];
+        slots.forEach(s=>{
+            let [sh, sm] = s.start.split(':').map(Number);
+            let [eh, em] = s.end.split(':').map(Number);
+            let startDate = new Date(0,0,0,sh,sm);
+            let endDate = new Date(0,0,0,eh,em);
+
+            while(startDate < endDate){
+                let slotEnd = new Date(startDate.getTime() + appointmentDuration*60000);
+                if(slotEnd > endDate) break;
+
+                let hh = startDate.getHours().toString().padStart(2,'0');
+                let mm = startDate.getMinutes().toString().padStart(2,'0');
+                let slotVal = hh+':'+mm;
+
+                let hhEnd = slotEnd.getHours().toString().padStart(2,'0');
+                let mmEnd = slotEnd.getMinutes().toString().padStart(2,'0');
+                let slotText = slotVal+' - '+hhEnd+':'+mmEnd;
+
+                const opt = document.createElement('option');
+                opt.value = slotVal;
+                opt.textContent = slotText;
+
+                // Disable if booked
+                if(bookedAppointments[docId]?.[selectedDate]?.includes(slotVal)){
+                    opt.disabled = true;
+                    opt.textContent += ' (Booked)';
+                }
+
+                timeSelect.appendChild(opt);
+                startDate = slotEnd;
+            }
+        });
     };
 });
 </script>
