@@ -24,47 +24,87 @@ $doctorSpec = $doctor['specialization'];
 
 $days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
-// Handle AJAX for availability (unchanged)
-if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['availability_action'])){
+// Handle AJAX for availability, days off, and vacation
+if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action_type'])){
     header('Content-Type: application/json');
-    $action = $_POST['availability_action'] ?? '';
+    $action = $_POST['action_type'] ?? '';
     
-    if($action==='add'){
-        $day = $_POST['day_of_week'];
-        $start = $_POST['start_time'];
-        $end = $_POST['end_time'];
-        $stmt = $conn->prepare("INSERT INTO availability (doctor_id, day_of_week, start_time, end_time) VALUES (?,?,?,?)");
-        $stmt->bind_param("isss",$doctorId,$day,$start,$end);
-        if($stmt->execute()){
-            $id = $stmt->insert_id;
-            echo json_encode(['success'=>true,'slot'=>['id'=>$id,'day_of_week'=>$day,'start_time'=>$start,'end_time'=>$end]]);
-        } else echo json_encode(['success'=>false,'error'=>$stmt->error]);
-        $stmt->close();
-        exit;
+    // --- Availability CRUD ---
+    if(isset($_POST['table_type']) && $_POST['table_type']==='availability'){
+        if($action==='add'){
+            $day = $_POST['day_of_week'];
+            $start = $_POST['start_time'];
+            $end = $_POST['end_time'];
+            $stmt = $conn->prepare("INSERT INTO availability (doctor_id, day_of_week, start_time, end_time) VALUES (?,?,?,?)");
+            $stmt->bind_param("isss",$doctorId,$day,$start,$end);
+            if($stmt->execute()){
+                $id = $stmt->insert_id;
+                echo json_encode(['success'=>true,'slot'=>['id'=>$id,'day_of_week'=>$day,'start_time'=>$start,'end_time'=>$end]]);
+            } else echo json_encode(['success'=>false,'error'=>$stmt->error]);
+            $stmt->close();
+            exit;
+        }
+        if($action==='update'){
+            $id = $_POST['id'];
+            $day = $_POST['day_of_week'];
+            $start = $_POST['start_time'];
+            $end = $_POST['end_time'];
+            $stmt = $conn->prepare("UPDATE availability SET day_of_week=?, start_time=?, end_time=? WHERE id=? AND doctor_id=?");
+            $stmt->bind_param("sssii",$day,$start,$end,$id,$doctorId);
+            if($stmt->execute()){
+                echo json_encode(['success'=>true,'slot'=>['id'=>$id,'day_of_week'=>$day,'start_time'=>$start,'end_time'=>$end]]);
+            } else echo json_encode(['success'=>false,'error'=>$stmt->error]);
+            $stmt->close();
+            exit;
+        }
+        if($action==='delete'){
+            $id = $_POST['id'];
+            $stmt = $conn->prepare("DELETE FROM availability WHERE id=? AND doctor_id=?");
+            $stmt->bind_param("ii",$id,$doctorId);
+            if($stmt->execute()) echo json_encode(['success'=>true]);
+            else echo json_encode(['success'=>false,'error'=>$stmt->error]);
+            $stmt->close();
+            exit;
+        }
     }
-    
-    if($action==='update'){
-        $id = $_POST['id'];
-        $day = $_POST['day_of_week'];
-        $start = $_POST['start_time'];
-        $end = $_POST['end_time'];
-        $stmt = $conn->prepare("UPDATE availability SET day_of_week=?, start_time=?, end_time=? WHERE id=? AND doctor_id=?");
-        $stmt->bind_param("sssii",$day,$start,$end,$id,$doctorId);
-        if($stmt->execute()){
-            echo json_encode(['success'=>true,'slot'=>['id'=>$id,'day_of_week'=>$day,'start_time'=>$start,'end_time'=>$end]]);
-        } else echo json_encode(['success'=>false,'error'=>$stmt->error]);
-        $stmt->close();
-        exit;
-    }
-    
-    if($action==='delete'){
-        $id = $_POST['id'];
-        $stmt = $conn->prepare("DELETE FROM availability WHERE id=? AND doctor_id=?");
-        $stmt->bind_param("ii",$id,$doctorId);
-        if($stmt->execute()) echo json_encode(['success'=>true]);
-        else echo json_encode(['success'=>false,'error'=>$stmt->error]);
-        $stmt->close();
-        exit;
+
+    // --- Days Off / Vacation CRUD ---
+    if(isset($_POST['table_type']) && $_POST['table_type']==='days_off'){
+        if($action==='add'){
+            $type = $_POST['type'];
+            $start = $_POST['start_date'];
+            $end = $_POST['end_date'];
+            $stmt = $conn->prepare("INSERT INTO days_off (doctor_id,type,start_date,end_date) VALUES (?,?,?,?)");
+            $stmt->bind_param("isss",$doctorId,$type,$start,$end);
+            if($stmt->execute()){
+                $id = $stmt->insert_id;
+                echo json_encode(['success'=>true,'slot'=>['id'=>$id,'type'=>$type,'start_date'=>$start,'end_date'=>$end]]);
+            } else echo json_encode(['success'=>false,'error'=>$stmt->error]);
+            $stmt->close();
+            exit;
+        }
+        if($action==='update'){
+            $id = $_POST['id'];
+            $type = $_POST['type'];
+            $start = $_POST['start_date'];
+            $end = $_POST['end_date'];
+            $stmt = $conn->prepare("UPDATE days_off SET type=?, start_date=?, end_date=? WHERE id=? AND doctor_id=?");
+            $stmt->bind_param("sssii",$type,$start,$end,$id,$doctorId);
+            if($stmt->execute()){
+                echo json_encode(['success'=>true,'slot'=>['id'=>$id,'type'=>$type,'start_date'=>$start,'end_date'=>$end]]);
+            } else echo json_encode(['success'=>false,'error'=>$stmt->error]);
+            $stmt->close();
+            exit;
+        }
+        if($action==='delete'){
+            $id = $_POST['id'];
+            $stmt = $conn->prepare("DELETE FROM days_off WHERE id=? AND doctor_id=?");
+            $stmt->bind_param("ii",$id,$doctorId);
+            if($stmt->execute()) echo json_encode(['success'=>true]);
+            else echo json_encode(['success'=>false,'error'=>$stmt->error]);
+            $stmt->close();
+            exit;
+        }
     }
 }
 
@@ -99,6 +139,14 @@ $stmt->execute();
 $result = $stmt->get_result();
 $availability = $result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
+
+// Days Off / Vacation
+$stmt = $conn->prepare("SELECT id, type, start_date, end_date FROM days_off WHERE doctor_id=? ORDER BY start_date ASC");
+$stmt->bind_param("i",$doctorId);
+$stmt->execute();
+$result = $stmt->get_result();
+$daysOff = $result->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -128,10 +176,13 @@ body{margin:0;display:flex;font-family:Segoe UI;background:var(--bg);}
 .tabs button.active{background:var(--primary);color:#fff;}
 .tab-content{background:#fff;padding:20px;border-radius:0 12px 12px 12px;box-shadow:0 8px 25px rgba(0,0,0,0.1);}
 input,select,button{padding:8px;margin:5px 0;border-radius:5px;border:1px solid #ccc;box-sizing:border-box;}
-button.update-btn{background:#ffc107;color:#fff;border:none;padding:5px 10px;border-radius:5px;}
-button.delete-btn{background:var(--danger);color:#fff;border:none;padding:5px 10px;border-radius:5px;}
+button.update-btn{background:#ffc107;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;}
+button.delete-btn{background:var(--danger);color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;}
 .add-btn{background:var(--info);color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;margin-bottom:15px;}
 .add-btn:hover{background:#138496;}
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;}
+.modal-content{background:#fff;padding:20px;border-radius:10px;width:350px;position:relative;}
+.modal .close{position:absolute;top:10px;right:15px;font-size:20px;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -158,6 +209,7 @@ button.delete-btn{background:var(--danger);color:#fff;border:none;padding:5px 10
 <button class="tab-link" onclick="openTab('password')">Change Password</button>
 </div>
 
+<!-- Appointments -->
 <div id="appointments" class="tab-content">
 <div class="table-card">
 <h2>Today's Appointments</h2>
@@ -185,10 +237,11 @@ button.delete-btn{background:var(--danger);color:#fff;border:none;padding:5px 10
 </div>
 </div>
 
+<!-- Availability Tab -->
 <div id="availability" class="tab-content" style="display:none;">
 <div class="table-card">
 <h2>Your Availability</h2>
-<button class="add-btn" onclick="openModal()">+ Add Availability</button>
+<button class="add-btn" onclick="openAvailabilityModal()">+ Add Availability</button>
 <table id="availabilityTable">
 <thead><tr><th>Day</th><th>Start</th><th>End</th><th>Actions</th></tr></thead>
 <tbody>
@@ -198,8 +251,30 @@ button.delete-btn{background:var(--danger);color:#fff;border:none;padding:5px 10
 <td><?php echo $slot['start_time']; ?></td>
 <td><?php echo $slot['end_time']; ?></td>
 <td>
-<button class="update-btn" onclick="editSlot(<?php echo $slot['id']; ?>)">Update</button>
-<button class="delete-btn" onclick="deleteSlot(<?php echo $slot['id']; ?>)">Delete</button>
+<button class="update-btn" onclick="editAvailability(<?php echo $slot['id']; ?>)">Update</button>
+<button class="delete-btn" onclick="deleteAvailability(<?php echo $slot['id']; ?>)">Delete</button>
+</td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
+</div>
+
+<!-- Days Off / Vacation Section -->
+<div class="table-card">
+<h2>Days Off / Vacation</h2>
+<button class="add-btn" onclick="openDaysOffModal()">+ Add Entry</button>
+<table id="daysOffTable">
+<thead><tr><th>Type</th><th>Start Date</th><th>End Date</th><th>Actions</th></tr></thead>
+<tbody>
+<?php foreach($daysOff as $d): ?>
+<tr data-id="<?php echo $d['id']; ?>">
+<td><?php echo $d['type']; ?></td>
+<td><?php echo $d['start_date']; ?></td>
+<td><?php echo $d['end_date']; ?></td>
+<td>
+<button class="update-btn" onclick="editDaysOff(<?php echo $d['id']; ?>)">Update</button>
+<button class="delete-btn" onclick="deleteDaysOff(<?php echo $d['id']; ?>)">Delete</button>
 </td>
 </tr>
 <?php endforeach; ?>
@@ -208,6 +283,7 @@ button.delete-btn{background:var(--danger);color:#fff;border:none;padding:5px 10
 </div>
 </div>
 
+<!-- Profile Tab -->
 <div id="profile" class="tab-content" style="display:none;">
 <h2>Profile</h2>
 <form>
@@ -221,6 +297,7 @@ button.delete-btn{background:var(--danger);color:#fff;border:none;padding:5px 10
 </form>
 </div>
 
+<!-- Password Tab -->
 <div id="password" class="tab-content" style="display:none;">
 <h2>Change Password</h2>
 <form method="POST" action="change_password.php">
@@ -237,10 +314,10 @@ button.delete-btn{background:var(--danger);color:#fff;border:none;padding:5px 10
 </div>
 
 <!-- Availability Modal -->
-<div id="availabilityModal" class="modal">
+<div id="availabilityModal" class="modal" style="display:none;">
 <div class="modal-content">
-<span class="close" onclick="closeModal()">&times;</span>
-<h3 id="modalTitle">Add Availability</h3>
+<span class="close" onclick="closeAvailabilityModal()">&times;</span>
+<h3 id="availabilityModalTitle">Add Availability</h3>
 <form id="availabilityForm">
 <select name="day_of_week" required>
 <option value="">Select Day</option>
@@ -249,7 +326,29 @@ button.delete-btn{background:var(--danger);color:#fff;border:none;padding:5px 10
 <input type="time" name="start_time" required>
 <input type="time" name="end_time" required>
 <input type="hidden" name="id" value="">
-<input type="hidden" name="availability_action" value="add">
+<input type="hidden" name="action_type" value="add">
+<input type="hidden" name="table_type" value="availability">
+<button type="submit" style="background:var(--success);color:#fff;">Save</button>
+</form>
+</div>
+</div>
+
+<!-- Days Off / Vacation Modal -->
+<div id="daysOffModal" class="modal" style="display:none;">
+<div class="modal-content">
+<span class="close" onclick="closeDaysOffModal()">&times;</span>
+<h3 id="daysOffModalTitle">Add Entry</h3>
+<form id="daysOffForm">
+<select name="type" required>
+<option value="">Select Type</option>
+<option value="Day Off">Day Off</option>
+<option value="Vacation">Vacation</option>
+</select>
+<input type="date" name="start_date" required>
+<input type="date" name="end_date" required>
+<input type="hidden" name="id" value="">
+<input type="hidden" name="action_type" value="add">
+<input type="hidden" name="table_type" value="days_off">
 <button type="submit" style="background:var(--success);color:#fff;">Save</button>
 </form>
 </div>
@@ -263,58 +362,120 @@ function openTab(tabName){
     event.currentTarget.classList.add('active');
 }
 
-// Availability JS
-let currentAction='add';
-let editRow=null;
-function openModal(){document.getElementById('availabilityModal').style.display='block';}
-function closeModal(){document.getElementById('availabilityModal').style.display='none';document.getElementById('availabilityForm').reset();currentAction='add';document.getElementById('modalTitle').innerText='Add Availability';}
-function editSlot(id){
-    editRow = document.querySelector(`tr[data-id='${id}']`);
-    document.querySelector('[name="day_of_week"]').value = editRow.children[0].innerText;
-    document.querySelector('[name="start_time"]').value = editRow.children[1].innerText;
-    document.querySelector('[name="end_time"]').value = editRow.children[2].innerText;
-    document.querySelector('[name="id"]').value = id;
-    document.querySelector('[name="availability_action"]').value = 'update';
-    currentAction='update';
-    document.getElementById('modalTitle').innerText='Update Availability';
-    openModal();
+// --- Availability JS ---
+let currentAvailabilityRow=null;
+function openAvailabilityModal(){
+    currentAvailabilityRow=null;
+    document.getElementById('availabilityForm').reset();
+    document.getElementById('availabilityForm').action_type.value='add';
+    document.getElementById('availabilityModalTitle').innerText='Add Availability';
+    document.getElementById('availabilityModal').style.display='flex';
 }
-function deleteSlot(id){
-    if(confirm("Are you sure?")){
-        fetch('',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`availability_action=delete&id=${id}`})
-        .then(res=>res.json()).then(data=>{
-            if(data.success) document.querySelector(`tr[data-id='${id}']`).remove();
-            else alert(data.error);
+function closeAvailabilityModal(){document.getElementById('availabilityModal').style.display='none';}
+function editAvailability(id){
+    let row=document.querySelector(`#availabilityTable tr[data-id='${id}']`);
+    currentAvailabilityRow=row;
+    document.getElementById('availabilityForm').day_of_week.value=row.cells[0].innerText;
+    document.getElementById('availabilityForm').start_time.value=row.cells[1].innerText;
+    document.getElementById('availabilityForm').end_time.value=row.cells[2].innerText;
+    document.getElementById('availabilityForm').id.value=id;
+    document.getElementById('availabilityForm').action_type.value='update';
+    document.getElementById('availabilityModalTitle').innerText='Update Availability';
+    document.getElementById('availabilityModal').style.display='flex';
+}
+function deleteAvailability(id){
+    if(confirm('Delete this slot?')){
+        fetch('',{
+            method:'POST',
+            headers:{'Content-Type':'application/x-www-form-urlencoded'},
+            body:`action_type=delete&table_type=availability&id=${id}`
+        }).then(r=>r.json()).then(data=>{
+            if(data.success) document.querySelector(`#availabilityTable tr[data-id='${id}']`).remove();
         });
     }
 }
-document.getElementById('availabilityForm').addEventListener('submit', function(e){
+
+// --- Days Off JS ---
+let currentDaysOffRow=null;
+function openDaysOffModal(){
+    currentDaysOffRow=null;
+    document.getElementById('daysOffForm').reset();
+    document.getElementById('daysOffForm').action_type.value='add';
+    document.getElementById('daysOffModalTitle').innerText='Add Entry';
+    document.getElementById('daysOffModal').style.display='flex';
+}
+function closeDaysOffModal(){document.getElementById('daysOffModal').style.display='none';}
+function editDaysOff(id){
+    let row=document.querySelector(`#daysOffTable tr[data-id='${id}']`);
+    currentDaysOffRow=row;
+    document.getElementById('daysOffForm').type.value=row.cells[0].innerText;
+    document.getElementById('daysOffForm').start_date.value=row.cells[1].innerText;
+    document.getElementById('daysOffForm').end_date.value=row.cells[2].innerText;
+    document.getElementById('daysOffForm').id.value=id;
+    document.getElementById('daysOffForm').action_type.value='update';
+    document.getElementById('daysOffModalTitle').innerText='Update Entry';
+    document.getElementById('daysOffModal').style.display='flex';
+}
+function deleteDaysOff(id){
+    if(confirm('Delete this entry?')){
+        fetch('',{
+            method:'POST',
+            headers:{'Content-Type':'application/x-www-form-urlencoded'},
+            body:`action_type=delete&table_type=days_off&id=${id}`
+        }).then(r=>r.json()).then(data=>{
+            if(data.success) document.querySelector(`#daysOffTable tr[data-id='${id}']`).remove();
+        });
+    }
+}
+
+// --- AJAX Form Submission ---
+document.getElementById('availabilityForm').addEventListener('submit',function(e){
     e.preventDefault();
-    let formData = new FormData(this);
-    fetch('',{method:'POST',body:formData}).then(res=>res.json()).then(data=>{
+    let fd = new FormData(this);
+    fetch('',{method:'POST',body:fd})
+    .then(r=>r.json())
+    .then(data=>{
         if(data.success){
-            if(currentAction==='add'){
-                let slot=data.slot;
-                let tbody=document.querySelector('#availabilityTable tbody');
-                let tr=document.createElement('tr');
-                tr.setAttribute('data-id',slot.id);
-                tr.innerHTML=`<td>${slot.day_of_week}</td><td>${slot.start_time}</td><td>${slot.end_time}</td>
-                <td><button class="update-btn" onclick="editSlot(${slot.id})">Update</button>
-                <button class="delete-btn" onclick="deleteSlot(${slot.id})">Delete</button></td>`;
-                tbody.appendChild(tr);
-            }
-            if(currentAction==='update'){
-                let slot=data.slot;
-                editRow.children[0].innerText=slot.day_of_week;
-                editRow.children[1].innerText=slot.start_time;
-                editRow.children[2].innerText=slot.end_time;
-            }
-            closeModal();
+            closeAvailabilityModal();
+            let t = document.getElementById('availabilityTable').querySelector('tbody');
+            let slot = data.slot;
+            let rowHtml = `<tr data-id="${slot.id}">
+            <td>${slot.day_of_week}</td>
+            <td>${slot.start_time}</td>
+            <td>${slot.end_time}</td>
+            <td>
+            <button class="update-btn" onclick="editAvailability(${slot.id})">Update</button>
+            <button class="delete-btn" onclick="deleteAvailability(${slot.id})">Delete</button>
+            </td></tr>`;
+            if(currentAvailabilityRow) currentAvailabilityRow.outerHTML=rowHtml;
+            else t.insertAdjacentHTML('beforeend',rowHtml);
         } else alert(data.error);
     });
 });
-window.onclick = function(event){ if(event.target==document.getElementById('availabilityModal')) closeModal();}
-</script>
 
+document.getElementById('daysOffForm').addEventListener('submit',function(e){
+    e.preventDefault();
+    let fd = new FormData(this);
+    fetch('',{method:'POST',body:fd})
+    .then(r=>r.json())
+    .then(data=>{
+        if(data.success){
+            closeDaysOffModal();
+            let t = document.getElementById('daysOffTable').querySelector('tbody');
+            let slot = data.slot;
+            let rowHtml = `<tr data-id="${slot.id}">
+            <td>${slot.type}</td>
+            <td>${slot.start_date}</td>
+            <td>${slot.end_date}</td>
+            <td>
+            <button class="update-btn" onclick="editDaysOff(${slot.id})">Update</button>
+            <button class="delete-btn" onclick="deleteDaysOff(${slot.id})">Delete</button>
+            </td></tr>`;
+            if(currentDaysOffRow) currentDaysOffRow.outerHTML=rowHtml;
+            else t.insertAdjacentHTML('beforeend',rowHtml);
+        } else alert(data.error);
+    });
+});
+</script>
 </body>
 </html>

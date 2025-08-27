@@ -2,7 +2,7 @@
 session_start();
 require 'connect.php';
 
-$name = $email = $role = '';
+$name = $email = $role = $location = '';
 $error = '';
 
 // Handle form submission
@@ -11,21 +11,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $role = $_POST['role'] ?? '';
+    $location = trim($_POST['location'] ?? '');
 
     // Basic validation
     if (empty($name) || empty($email) || empty($password) || !in_array($role, ['patient', 'doctor'])) {
         $error = 'Please fill in all required fields correctly.';
     } 
-    // Simple password validation (only minimum length)
     elseif(strlen($password) < 4){
         $error = 'Password must be at least 4 characters long.';
     } 
+    elseif(empty($location)){
+        $error = 'Please enter your location.';
+    }
     else {
         $name = $conn->real_escape_string($name);
         $email = $conn->real_escape_string($email);
         $role = $conn->real_escape_string($role);
+        $location = $conn->real_escape_string($location);
 
-        // Check if email already exists
+        // Check if email exists
         $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
@@ -34,12 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->num_rows > 0) {
             $error = 'Email is already registered. Please use another or login.';
         } else {
-            // Hash password
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
-            // Insert user with optional 2FA column (default 0)
-            $insertStmt = $conn->prepare("INSERT INTO users (name, email, password, role, twofa_enabled) VALUES (?, ?, ?, ?, 0)");
-            $insertStmt->bind_param("ssss", $name, $email, $passwordHash, $role);
+            $insertStmt = $conn->prepare("INSERT INTO users (name, email, password, role, location, twofa_enabled) VALUES (?, ?, ?, ?, ?, 0)");
+            $insertStmt->bind_param("sssss", $name, $email, $passwordHash, $role, $location);
 
             if ($insertStmt->execute()) {
                 $_SESSION['success_message'] = "Registration successful! Please log in.";
@@ -83,14 +85,6 @@ body {
     text-align:center;
 }
 .register-container h2 { margin-bottom:20px; font-size:24px; color:#333; }
-.register-container label {
-    display:block;
-    text-align:left;
-    margin:12px 0 6px;
-    font-size:14px;
-    font-weight:bold;
-    color:#555;
-}
 .register-container input,
 .register-container select {
     width:100%;
@@ -139,11 +133,14 @@ body {
     <input type="text" name="name" placeholder="Full Name" required value="<?= htmlspecialchars($name) ?>" />
     <input type="email" name="email" placeholder="Email Address" required value="<?= htmlspecialchars($email) ?>" />
     <input type="password" name="password" placeholder="Password" required />
+    <input type="text" name="location" placeholder="Location" required value="<?= htmlspecialchars($location) ?>" />
+    
     <select name="role" required>
         <option value="" disabled <?= !$role ? 'selected' : '' ?>>Select Role</option>
         <option value="patient" <?= $role === 'patient' ? 'selected' : '' ?>>Patient</option>
         <option value="doctor" <?= $role === 'doctor' ? 'selected' : '' ?>>Doctor</option>
     </select>
+
     <button type="submit">Sign Up</button>
 </form>
 

@@ -1,5 +1,5 @@
 <?php
-if (session_status() == PHP_SESSION_NONE) session_start();
+session_start();
 require 'connect.php';
 
 // Check logged-in patient
@@ -11,9 +11,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'patient') {
 $patientId = $_SESSION['user_id'];
 $patientName = $_SESSION['name'] ?? 'Patient';
 
-// Fetch doctors list with specialization
+// Fetch doctors list
 $doctors = [];
-$docResult = $conn->query("SELECT id, name, specialization FROM users WHERE role='doctor'");
+$docResult = $conn->query("SELECT id, name, specialization, location FROM users WHERE role='doctor'");
 if ($docResult) {
     while ($row = $docResult->fetch_assoc()) $doctors[] = $row;
 }
@@ -24,7 +24,7 @@ $availResult = $conn->query("SELECT doctor_id, day_of_week, start_time, end_time
 if ($availResult) {
     while ($row = $availResult->fetch_assoc()) {
         $did = $row['doctor_id'];
-        $day = $row['day_of_week'];
+        $day = ucfirst(strtolower($row['day_of_week']));
         if (!isset($availability[$did])) $availability[$did] = [];
         if (!isset($availability[$did][$day])) $availability[$did][$day] = [];
         $availability[$did][$day][] = ['start'=>$row['start_time'],'end'=>$row['end_time']];
@@ -48,40 +48,55 @@ if ($apptResult) {
 $successMessage = '';
 $errorMessage = '';
 $paymentLink = '';
+$appointmentDuration = 60; // minutes
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $doctorId = $_POST['doctor'] ?? '';
     $date = $_POST['date'] ?? '';
     $time = $_POST['time'] ?? '';
     $notes = trim($_POST['notes'] ?? '');
+    $type = $_POST['type'] ?? '';
 
-    if (!$doctorId || !$date || !$time) $errorMessage = "Please fill in all required fields.";
-    else {
-        $appointment_datetime = $date . ' ' . $time . ':00';
+    if (!$doctorId || !$date || !$time || !$type) {
+        $errorMessage = "Please fill in all required fields.";
+    } else {
+        $timezone = new DateTimeZone('Africa/Kigali'); 
+        $dt = new DateTime($date . ' ' . $time, $timezone);
+        $dt->setTimezone(new DateTimeZone('UTC'));
+        $appointment_datetime = $dt->format('Y-m-d H:i:s');
 
-        // Check if patient already has appointment at that time
-        $stmtCheck = $conn->prepare("SELECT COUNT(*) FROM appointments WHERE patient_id=? AND appointment_datetime=? AND TRIM(LOWER(status))='booked'");
-        $stmtCheck->bind_param("is", $patientId, $appointment_datetime);
-        $stmtCheck->execute();
-        $stmtCheck->bind_result($exists);
-        $stmtCheck->fetch();
-        $stmtCheck->close();
+        // Check patient double booking
+        $stmtCheck1 = $conn->prepare("SELECT COUNT(*) FROM appointments WHERE patient_id=? AND appointment_datetime=? AND TRIM(LOWER(status))='booked'");
+        $stmtCheck1->bind_param("is", $patientId, $appointment_datetime);
+        $stmtCheck1->execute();
+        $stmtCheck1->bind_result($existsPatient);
+        $stmtCheck1->fetch();
+        $stmtCheck1->close();
 
-        if ($exists>0) $errorMessage = "You already have an appointment at this time.";
+        // Check doctor double booking
+        $stmtCheck2 = $conn->prepare("SELECT COUNT(*) FROM appointments WHERE doctor_id=? AND appointment_datetime=? AND TRIM(LOWER(status))='booked'");
+        $stmtCheck2->bind_param("is", $doctorId, $appointment_datetime);
+        $stmtCheck2->execute();
+        $stmtCheck2->bind_result($existsDoctor);
+        $stmtCheck2->fetch();
+        $stmtCheck2->close();
+
+        if ($existsPatient > 0) $errorMessage = "You already have an appointment at this time.";
+        else if ($existsDoctor > 0) $errorMessage = "This doctor is already booked at this time.";
         else {
-            $stmt = $conn->prepare("INSERT INTO appointments (patient_id, doctor_id, appointment_datetime, notes) VALUES (?, ?, ?, ?)");
+            $stmt = $conn->prepare("INSERT INTO appointments (patient_id, doctor_id, appointment_datetime, notes, type) VALUES (?, ?, ?, ?, ?)");
             if (!$stmt) $errorMessage = "Prepare failed: " . $conn->error;
             else {
-                $stmt->bind_param("iiss", $patientId, $doctorId, $appointment_datetime, $notes);
+                $stmt->bind_param("iisss", $patientId, $doctorId, $appointment_datetime, $notes, $type);
                 if ($stmt->execute()) {
                     $appointmentId = $stmt->insert_id;
-                    $successMessage = "Appointment booked successfully for $date at $time.";
+                    $successMessage = "Appointment booked successfully for $date at $time ($type).";
                     $paymentLink = "patient_payment.php?appointment_id=$appointmentId";
 
-                    // Notification for doctor
+                    // Notify doctor
                     $notifStmt = $conn->prepare("INSERT INTO notifications (appointment_id,type,sent_at,status,recipient_id,recipient_role,related_table,related_id) VALUES (?, ?, NOW(), 'unread', ?, 'doctor', 'appointments', ?)");
-                    $type='appointment_created';
-                    $notifStmt->bind_param("isii",$appointmentId,$type,$doctorId,$appointmentId);
+                    $notifType='appointment_created';
+                    $notifStmt->bind_param("isii",$appointmentId,$notifType,$doctorId,$appointmentId);
                     $notifStmt->execute();
                     $notifStmt->close();
                 } else $errorMessage = "Error booking appointment: " . $stmt->error;
@@ -92,8 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $conn->close();
-$daysOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-$appointmentDuration = 60; // duration in minutes
 ?>
 
 <!DOCTYPE html>
@@ -129,7 +142,7 @@ button:hover { background:#0056b3; }
 
 <form method="POST" action="">
 <label for="specialization">Specialization</label>
-<select id="specialization" required>
+<select id="specialization">
   <option value="">-- Select Specialization --</option>
   <?php
   $specs = array_unique(array_map(fn($d)=>$d['specialization'],$doctors));
@@ -137,18 +150,33 @@ button:hover { background:#0056b3; }
   ?>
 </select>
 
+<label for="location">Location</label>
+<select id="location">
+  <option value="">-- Select Location --</option>
+  <?php
+  $locations = array_unique(array_map(fn($d)=>$d['location'],$doctors));
+  foreach($locations as $loc) echo "<option value=\"" . htmlspecialchars($loc) . "\">" . htmlspecialchars($loc) . "</option>";
+  ?>
+</select>
+
 <label for="doctor">Choose Doctor <span style="color:red">*</span></label>
 <select id="doctor" name="doctor" required>
   <option value="">-- Select Doctor --</option>
   <?php foreach($doctors as $doc): ?>
-    <option value="<?= $doc['id']; ?>" data-specialization="<?= htmlspecialchars($doc['specialization']); ?>">
-      <?= htmlspecialchars($doc['name']." ({$doc['specialization']})"); ?>
+    <option value="<?= $doc['id']; ?>" data-specialization="<?= htmlspecialchars($doc['specialization']); ?>" data-location="<?= htmlspecialchars($doc['location']); ?>">
+      <?= htmlspecialchars($doc['name']." ({$doc['specialization']}, {$doc['location']})"); ?>
     </option>
   <?php endforeach; ?>
 </select>
 
+<label for="type">Appointment Type</label>
+<select id="type" name="type" required>
+  <option value="in-person">In-person</option>
+  <option value="teleconsultation">Teleconsultation</option>
+</select>
+
 <label for="date">Date <span style="color:red">*</span></label>
-<input type="date" id="date" name="date" required value="<?=htmlspecialchars($date??'')?>">
+<input type="date" id="date" name="date" required>
 
 <label for="time">Time <span style="color:red">*</span></label>
 <select id="time" name="time" required>
@@ -156,7 +184,7 @@ button:hover { background:#0056b3; }
 </select>
 
 <label for="notes">Notes (optional)</label>
-<textarea id="notes" name="notes" placeholder="Reason for visit"><?=htmlspecialchars($notes??'')?></textarea>
+<textarea id="notes" name="notes" placeholder="Reason for visit"></textarea>
 
 <button type="submit">Book Appointment</button>
 </form>
@@ -169,74 +197,76 @@ button:hover { background:#0056b3; }
 <script>
 const doctorsSelect = document.getElementById('doctor');
 const specSelect = document.getElementById('specialization');
+const locationSelect = document.getElementById('location');
 const dateInput = document.getElementById('date');
 const timeSelect = document.getElementById('time');
 
 const availability = <?=json_encode($availability)?>;
 const bookedAppointments = <?=json_encode($bookedAppointments)?>;
-const daysOfWeek = <?=json_encode($daysOfWeek)?>;
 const appointmentDuration = <?= $appointmentDuration ?>;
 
-// Filter doctors by specialization
-specSelect.addEventListener('change', ()=>{
+function filterDoctors() {
     const spec = specSelect.value;
+    const loc = locationSelect.value;
     for (let opt of doctorsSelect.options){
         if(opt.value==='') { opt.style.display=''; continue; }
-        opt.style.display = (opt.dataset.specialization===spec)?'':'none';
+        const matchSpec = !spec || opt.dataset.specialization === spec;
+        const matchLoc = !loc || opt.dataset.location === loc;
+        opt.style.display = (matchSpec && matchLoc) ? '' : 'none';
     }
     doctorsSelect.value=''; dateInput.value=''; timeSelect.innerHTML='<option value="">-- Select Time --</option>';
-});
+}
 
-// Update datepicker and time slots
-doctorsSelect.addEventListener('change', ()=>{
+specSelect.addEventListener('change', filterDoctors);
+locationSelect.addEventListener('change', filterDoctors);
+
+doctorsSelect.addEventListener('change', ()=> {
     dateInput.value=''; timeSelect.innerHTML='<option value="">-- Select Time --</option>';
     const docId = doctorsSelect.value;
     if(!docId) return;
-
-    const docAvail = availability[docId];
-    if(!docAvail) return;
 
     const today = new Date();
     const maxDate = new Date(); maxDate.setMonth(today.getMonth()+3);
     dateInput.min = today.toISOString().split('T')[0];
     dateInput.max = maxDate.toISOString().split('T')[0];
 
-    dateInput.oninput = ()=>{
+    dateInput.oninput = ()=> {
         const selectedDate = dateInput.value;
+        if(!selectedDate) return;
         const dayStr = new Date(selectedDate).toLocaleDateString('en-US',{weekday:'long'});
 
-        if(!docAvail[dayStr]){
+        const docAvail = availability[docId];
+        if(!docAvail || !docAvail[dayStr]){
             alert('Doctor is not available on this day. Pick another.');
             dateInput.value=''; timeSelect.innerHTML='<option value="">-- Select Time --</option>';
             return;
         }
 
-        // Split availability into appointmentDuration slots
         timeSelect.innerHTML='<option value="">-- Select Time --</option>';
-        const slots = docAvail[dayStr];
-        slots.forEach(s=>{
-            let [sh, sm] = s.start.split(':').map(Number);
-            let [eh, em] = s.end.split(':').map(Number);
+        docAvail[dayStr].forEach(slot=>{
+            let [sh, sm] = slot.start.split(':').map(Number);
+            let [eh, em] = slot.end.split(':').map(Number);
             let startDate = new Date(0,0,0,sh,sm);
             let endDate = new Date(0,0,0,eh,em);
+            if(endDate <= startDate) endDate.setDate(endDate.getDate()+1);
 
             while(startDate < endDate){
                 let slotEnd = new Date(startDate.getTime() + appointmentDuration*60000);
                 if(slotEnd > endDate) break;
 
-                let hh = startDate.getHours().toString().padStart(2,'0');
-                let mm = startDate.getMinutes().toString().padStart(2,'0');
-                let slotVal = hh+':'+mm;
+                const hh = startDate.getHours().toString().padStart(2,'0');
+                const mm = startDate.getMinutes().toString().padStart(2,'0');
+                const hhEnd = slotEnd.getHours().toString().padStart(2,'0');
+                const mmEnd = slotEnd.getMinutes().toString().padStart(2,'0');
 
-                let hhEnd = slotEnd.getHours().toString().padStart(2,'0');
-                let mmEnd = slotEnd.getMinutes().toString().padStart(2,'0');
-                let slotText = slotVal+' - '+hhEnd+':'+mmEnd;
+                const slotVal = `${hh}:${mm}`;
+                const slotText = `${hh}:${mm} - ${hhEnd}:${mmEnd}`;
 
                 const opt = document.createElement('option');
                 opt.value = slotVal;
                 opt.textContent = slotText;
 
-                // Disable if booked
+                // disable if booked
                 if(bookedAppointments[docId]?.[selectedDate]?.includes(slotVal)){
                     opt.disabled = true;
                     opt.textContent += ' (Booked)';
@@ -249,6 +279,5 @@ doctorsSelect.addEventListener('change', ()=>{
     };
 });
 </script>
-
 </body>
 </html>

@@ -75,28 +75,42 @@ h1 {
   margin-bottom: 30px;
   color: #007BFF;
 }
+/* Smaller, compact cards */
 .card-container {
   display: flex;
-  gap: 20px;
   flex-wrap: wrap;
+  gap: 12px;
   justify-content: center;
-  margin-bottom: 40px;
+  margin-bottom: 30px;
 }
+
 .card {
-  flex: 1 1 250px;
+  flex: 1 1 150px;
+  min-width: 120px;
   background: #fff;
-  border-radius: 12px;
-  padding: 25px;
+  border-radius: 10px;
+  padding: 15px;
   text-align: center;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
   transition: transform 0.2s;
 }
-.card:hover { transform: translateY(-3px); }
-.card h2 {
-  font-size: 2.2em;
-  color: #007BFF;
-  margin-bottom: 5px;
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 }
+
+.card h2 {
+  font-size: 1.6em;
+  color: #007BFF;
+  margin-bottom: 3px;
+}
+
+.card p {
+  font-size: 0.9em;
+  margin: 0;
+}
+
 canvas {
   background: #fff;
   margin: 30px 0;
@@ -110,7 +124,7 @@ h2 {
   color: #333;
 }
 .table-wrapper {
-  max-height: 400px; /* Adjust as needed */
+  max-height: 400px;
   overflow-y: auto;
   margin-top: 20px;
   border-radius: 12px;

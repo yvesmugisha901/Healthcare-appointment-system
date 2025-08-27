@@ -11,7 +11,7 @@ if (!isset($_GET['id'])) {
 $userId = $_GET['id'];
 
 // Fetch user data
-$stmt = $conn->prepare("SELECT name, email, role, specialization FROM users WHERE id = ?");
+$stmt = $conn->prepare("SELECT name, email, role, specialization, location FROM users WHERE id = ?");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -28,10 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name']);
     $email = trim($_POST['email']);
     $role = $_POST['role'];
-    $specialization = $_POST['specialization'];
+    $specialization = trim($_POST['specialization']);
+    $location = trim($_POST['location']);
 
-    $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, role = ?, specialization = ? WHERE id = ?");
-    $stmt->bind_param("ssssi", $name, $email, $role, $specialization, $userId);
+    $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, role = ?, specialization = ?, location = ? WHERE id = ?");
+    $stmt->bind_param("sssssi", $name, $email, $role, $specialization, $location, $userId);
     $stmt->execute();
     $stmt->close();
 
@@ -107,6 +108,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       <label for="specialization">Specialization (if doctor)</label>
       <input type="text" name="specialization" value="<?= htmlspecialchars($user['specialization']); ?>" />
+
+      <label for="location">Location (if doctor)</label>
+      <input type="text" name="location" value="<?= htmlspecialchars($user['location']); ?>" />
 
       <button type="submit">Update User</button>
     </form>

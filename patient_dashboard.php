@@ -7,6 +7,18 @@ if (!isset($_SESSION['user_id']) || strtolower(trim($_SESSION['role'])) !== 'pat
     header("Location: login.php");
     exit;
 }
+// Handle CSV download
+if(isset($_GET['download']) && $_GET['download']=='past_appointments'){
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="past_appointments.csv"');
+    $output = fopen('php://output','w');
+    fputcsv($output, ['Date','Time','Doctor','Status']); // CSV headers
+    foreach($pastAppointments as $app){
+        fputcsv($output, [$app['date'], date("h:i A", strtotime($app['time'])), $app['doctor'], ucfirst($app['status'])]);
+    }
+    fclose($output);
+    exit;
+}
 
 $patientId = $_SESSION['user_id'];
 $patientName = $_SESSION['name'];
@@ -156,8 +168,15 @@ button{padding:6px 12px;font-size:13px;border-radius:5px;border:none;cursor:poin
 </table>
 </div>
 
+
 <div class="table-card">
-<h2>Past Appointments</h2>
+
+<h2>
+  Past Appointments 
+  <button onclick="toggleHistory()" style="float:right;margin-right:10px;padding:5px 10px;background:#28a745;color:#fff;border:none;border-radius:5px;cursor:pointer;">Show/Hide</button>
+  <a href="?download=past_appointments" style="float:right;padding:5px 10px;background:#007bff;color:#fff;border:none;border-radius:5px;text-decoration:none;margin-right:10px;">Download CSV</a>
+</h2>
+<div id="history-section" style="display:none;">
 <table>
 <thead><tr><th>Date</th><th>Time</th><th>Doctor</th><th>Status</th></tr></thead>
 <tbody>
@@ -173,6 +192,8 @@ button{padding:6px 12px;font-size:13px;border-radius:5px;border:none;cursor:poin
 <?php endif; ?>
 </tbody>
 </table>
+
+</div>
 </div>
 </div>
 
@@ -187,7 +208,6 @@ function cancelAppointment(id){
         if(data.success){
             const row = document.getElementById('row-'+id);
             if(row) row.remove();
-            // update summary
             const scheduled = document.getElementById('scheduled-count');
             const cancelled = document.getElementById('cancelled-count');
             scheduled.textContent = parseInt(scheduled.textContent)-1;
@@ -206,9 +226,13 @@ function updateAppointment(id){
     }).then(res=>res.json()).then(data=>{
         if(data.success){
             alert('Appointment updated successfully!');
-            // we can optionally update scheduled card if needed
         } else alert(data.message||'Failed to update');
     });
+}
+
+function toggleHistory(){
+    const section = document.getElementById('history-section');
+    section.style.display = section.style.display === 'none' ? 'block' : 'none';
 }
 </script>
 
