@@ -2,7 +2,9 @@
 session_start();
 require 'connect.php';
 
+// ==========================
 // Check logged-in patient
+// ==========================
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'patient') {
     header('Location: login.php');
     exit;
@@ -11,14 +13,18 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'patient') {
 $patientId = $_SESSION['user_id'];
 $patientName = $_SESSION['name'] ?? 'Patient';
 
+// ==========================
 // Fetch doctors list
+// ==========================
 $doctors = [];
 $docResult = $conn->query("SELECT id, name, specialization, location FROM users WHERE role='doctor'");
 if ($docResult) {
     while ($row = $docResult->fetch_assoc()) $doctors[] = $row;
 }
 
+// ==========================
 // Fetch doctor availability
+// ==========================
 $availability = [];
 $availResult = $conn->query("SELECT doctor_id, day_of_week, start_time, end_time FROM availability");
 if ($availResult) {
@@ -31,7 +37,9 @@ if ($availResult) {
     }
 }
 
+// ==========================
 // Fetch booked appointments
+// ==========================
 $bookedAppointments = [];
 $apptResult = $conn->query("SELECT doctor_id, DATE(appointment_datetime) AS date, TIME(appointment_datetime) AS time FROM appointments WHERE TRIM(LOWER(status))='booked'");
 if ($apptResult) {
@@ -45,6 +53,9 @@ if ($apptResult) {
     }
 }
 
+// ==========================
+// Booking logic
+// ==========================
 $successMessage = '';
 $errorMessage = '';
 $paymentLink = '';
@@ -93,12 +104,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $successMessage = "Appointment booked successfully for $date at $time ($type).";
                     $paymentLink = "patient_payment.php?appointment_id=$appointmentId";
 
-                    // Notify doctor
+                    // ==========================
+                    // Insert notification for doctor
+                    // ==========================
                     $notifStmt = $conn->prepare("INSERT INTO notifications (appointment_id,type,sent_at,status,recipient_id,recipient_role,related_table,related_id) VALUES (?, ?, NOW(), 'unread', ?, 'doctor', 'appointments', ?)");
                     $notifType='appointment_created';
                     $notifStmt->bind_param("isii",$appointmentId,$notifType,$doctorId,$appointmentId);
                     $notifStmt->execute();
                     $notifStmt->close();
+
+                    // ==========================
+                    // Simulated email to patient
+                    // ==========================
+                    $simulatedEmail = "To: $patientName\n";
+                    $simulatedEmail .= "Subject: Appointment Reminder\n";
+                    $simulatedEmail .= "Message: Your appointment is scheduled on $date at $time.\n";
+                    $successMessage .= "<br><br><strong>Simulated Email Sent:</strong><pre>$simulatedEmail</pre>";
+
                 } else $errorMessage = "Error booking appointment: " . $stmt->error;
                 $stmt->close();
             }
@@ -137,8 +159,8 @@ button:hover { background:#0056b3; }
 <h1>Book Appointment</h1>
 <p>Welcome, <?=htmlspecialchars($patientName)?>. Fill the form below.</p>
 
-<?php if($successMessage):?><div class="message success"><?=htmlspecialchars($successMessage)?></div><?php endif;?>
-<?php if($errorMessage):?><div class="message error"><?=htmlspecialchars($errorMessage)?></div><?php endif;?>
+<?php if($successMessage):?><div class="message success"><?= $successMessage ?></div><?php endif;?>
+<?php if($errorMessage):?><div class="message error"><?= $errorMessage ?></div><?php endif;?>
 
 <form method="POST" action="">
 <label for="specialization">Specialization</label>
@@ -266,7 +288,6 @@ doctorsSelect.addEventListener('change', ()=> {
                 opt.value = slotVal;
                 opt.textContent = slotText;
 
-                // disable if booked
                 if(bookedAppointments[docId]?.[selectedDate]?.includes(slotVal)){
                     opt.disabled = true;
                     opt.textContent += ' (Booked)';

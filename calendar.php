@@ -107,6 +107,12 @@ h2 { margin-bottom: 20px; text-align: center; color: #1e3a8a; }
     <h2>Appointment Calendar</h2>
     <div id="calendar"></div>
 </div>
+<div style="text-align:center; margin:15px;">
+  <a href="export_ics.php" class="btn btn-primary" style="background:#1e3a8a; color:white; padding:10px 15px; border-radius:8px; text-decoration:none;">
+    <i class="fa fa-download"></i> Export Appointments (.ics)
+  </a>
+</div>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
