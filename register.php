@@ -5,7 +5,6 @@ require 'connect.php';
 $name = $email = $role = $location = '';
 $error = '';
 
-// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim($_POST['name'] ?? '');
     $email = trim($_POST['email'] ?? '');
@@ -13,23 +12,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $role = $_POST['role'] ?? '';
     $location = trim($_POST['location'] ?? '');
 
-    // Basic validation
     if (empty($name) || empty($email) || empty($password) || !in_array($role, ['patient', 'doctor'])) {
         $error = 'Please fill in all required fields correctly.';
-    } 
-    elseif(strlen($password) < 4){
+    } elseif(strlen($password) < 4){
         $error = 'Password must be at least 4 characters long.';
-    } 
-    elseif(empty($location)){
+    } elseif(empty($location)){
         $error = 'Please enter your location.';
-    }
-    else {
+    } else {
         $name = $conn->real_escape_string($name);
         $email = $conn->real_escape_string($email);
         $role = $conn->real_escape_string($role);
         $location = $conn->real_escape_string($location);
 
-        // Check if email exists
         $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
@@ -44,9 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $insertStmt->bind_param("sssss", $name, $email, $passwordHash, $role, $location);
 
             if ($insertStmt->execute()) {
-                $_SESSION['success_message'] = "Registration successful! Please log in.";
-                header("Location: login.php");
-                exit;
+                $user_id = $insertStmt->insert_id;
+                if ($role === 'doctor') {
+                    header("Location: doctor_verification.php?user_id=" . $user_id);
+                    exit;
+                } else {
+                    $_SESSION['success_message'] = "Registration successful! Please log in.";
+                    header("Location: login.php");
+                    exit;
+                }
             } else {
                 $error = 'Error: ' . $conn->error;
             }
@@ -66,64 +66,129 @@ $conn->close();
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Register - Healthcare Appointment System</title>
+<title>Register - MedConnect</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-* { margin:0; padding:0; box-sizing:border-box; font-family:"Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
+:root {
+    --primary:#2a9d8f;
+    --primary-dark:#1d7870;
+    --neutral-dark:#264653;
+    --neutral-medium:#6c757d;
+    --neutral-light:#f8f9fa;
+    --white:#fff;
+    --shadow-md: 0 8px 20px rgba(0,0,0,0.12);
+    --radius:12px;
+    --transition: all 0.3s ease;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter', sans-serif; }
 body {
+    min-height:100vh;
     display:flex;
     justify-content:center;
     align-items:center;
-    height:100vh;
-    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    background: #e8f6f4; /* subtle professional green background */
 }
+
 .register-container {
-    background:#fff;
-    padding:30px 40px;
-    border-radius:12px;
-    box-shadow:0px 8px 25px rgba(0,0,0,0.15);
-    width:360px;
+    background: var(--white);
+    padding: 45px 40px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    width: 400px;
     text-align:center;
+    transition: var(--transition);
 }
-.register-container h2 { margin-bottom:20px; font-size:24px; color:#333; }
-.register-container input,
-.register-container select {
+
+.register-container:hover {
+    transform: translateY(-4px);
+}
+
+.register-container h2 {
+    font-size:28px;
+    color: var(--neutral-dark);
+    margin-bottom:25px;
+    font-weight:700;
+}
+
+.register-container form input,
+.register-container form select {
     width:100%;
-    padding:10px 12px;
-    margin-bottom:15px;
-    border:1px solid #ddd;
-    border-radius:8px;
+    padding:14px 15px;
+    margin-bottom:18px;
+    border:1px solid #ccc;
+    border-radius: var(--radius);
     outline:none;
-    transition:0.3s;
+    font-size:15px;
+    transition: var(--transition);
 }
-.register-container input:focus,
-.register-container select:focus {
-    border-color:#4facfe;
-    box-shadow:0px 0px 6px rgba(79,172,254,0.6);
+
+.register-container form input:focus,
+.register-container form select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 8px rgba(42,157,143,0.25);
 }
+
 .register-container button {
     width:100%;
-    padding:12px;
-    background:#4facfe;
+    padding:14px;
     border:none;
-    border-radius:8px;
-    color:white;
+    border-radius: var(--radius);
+    background: var(--primary);
+    color: var(--white);
     font-size:16px;
-    font-weight:bold;
+    font-weight:600;
     cursor:pointer;
-    transition:0.3s;
+    transition: var(--transition);
 }
-.register-container button:hover { background:#008cff; }
-.error { color:#d9534f; font-weight:bold; margin-bottom:10px; }
-.success { color:#28a745; font-weight:bold; margin-bottom:10px; }
-.login-link { margin-top:15px; font-size:14px; color:#555; }
-.login-link a { color:#4facfe; font-weight:bold; text-decoration:none; }
+
+.register-container button:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow:0 6px 14px rgba(0,0,0,0.12);
+}
+
+.error {
+    color:#d9534f;
+    font-weight:bold;
+    margin-bottom:15px;
+    background:#fdecea;
+    padding:10px;
+    border-radius: var(--radius);
+}
+
+.success {
+    color:#28a745;
+    font-weight:bold;
+    margin-bottom:15px;
+    background:#e6f4ea;
+    padding:10px;
+    border-radius: var(--radius);
+}
+
+.login-link {
+    margin-top:18px;
+    font-size:14px;
+    color: var(--neutral-medium);
+}
+
+.login-link a {
+    color: var(--primary);
+    font-weight:bold;
+    text-decoration:none;
+}
+
 .login-link a:hover { text-decoration:underline; }
+
+@media(max-width:480px){
+    .register-container { width:90%; padding:30px; }
+}
 </style>
 </head>
 <body>
 
 <div class="register-container">
-<h2>Create an Account</h2>
+<h2>Create Your Account</h2>
 
 <?php if (!empty($error)): ?>
     <div class="error"><?= htmlspecialchars($error) ?></div>
@@ -141,7 +206,7 @@ body {
         <option value="doctor" <?= $role === 'doctor' ? 'selected' : '' ?>>Doctor</option>
     </select>
 
-    <button type="submit">Sign Up</button>
+    <button type="submit"><i class="fas fa-user-plus"></i> Sign Up</button>
 </form>
 
 <div class="login-link">

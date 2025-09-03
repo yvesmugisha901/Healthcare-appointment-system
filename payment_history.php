@@ -44,130 +44,61 @@ $conn->close();
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 :root {
-    --primary: #1e3a8a;
-    --primary-light: #3b82f6;
-    --bg: #f0f2f5;
-    --text: #333;
+    --primary: #2a9d8f;
+    --primary-dark: #1d7870;
+    --primary-light: #7fcdc3;
+    --secondary: #e76f51;
+    --neutral-dark: #264653;
+    --neutral-light: #f8f9fa;
+    --white: #ffffff;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+    --radius: 12px;
+    --transition: all 0.3s ease;
 }
 
-body {
-    margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background: var(--bg);
-    display: flex;
-    min-height: 100vh;
-}
+/* Reset & Body */
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
+body { display:flex; min-height:100vh; background: var(--neutral-light); color: var(--neutral-dark); }
 
 /* Sidebar */
 .sidebar {
-    width: 220px;
-    background-color: var(--primary);
-    color: white;
-    padding: 25px 20px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+    width: 220px; background: var(--primary); color: var(--white);
+    display:flex; flex-direction:column; padding:25px 20px; min-height:100vh;
 }
-
-.sidebar h2 {
-    margin-bottom: 30px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 24px;
-}
-
-.sidebar h2 i { font-size: 28px; }
-
+.sidebar h2 { margin-bottom:30px; display:flex; align-items:center; gap:10px; font-size:22px; }
+.sidebar h2 i { font-size:26px; }
 .sidebar nav a {
-    color: #cce5ff;
-    text-decoration: none;
-    margin: 10px 0;
-    padding: 10px 12px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.3s ease;
+    display:flex; align-items:center; gap:10px; padding:10px 12px;
+    border-radius: var(--radius); text-decoration:none; color:#cce5ff; transition: var(--transition);
+    margin:6px 0;
 }
-
-.sidebar nav a.active,
-.sidebar nav a:hover {
-    background-color: var(--primary-light);
-    color: #fff;
-}
+.sidebar nav a.active, .sidebar nav a:hover { background: var(--primary-light); color:#fff; }
 
 /* Main content */
-.main-content {
-    flex: 1;
-    padding: 30px;
-    box-sizing: border-box;
-    display: flex;
-    justify-content: center; /* centers content horizontally */
-}
+.main-content { flex:1; padding:30px; display:flex; justify-content:center; }
+.content-wrapper { width:100%; max-width:1000px; }
 
-.content-wrapper {
-    width: 100%;
-    max-width: 1000px; /* table won't be too wide */
-}
+/* Heading */
+h1 { text-align:center; color: var(--primary); margin-bottom:25px; }
 
-/* Headings */
-h1 {
-    color: var(--primary);
-    margin-bottom: 25px;
-    text-align: center;
-}
-
-/* Table card */
+/* Table Card */
 .table-card {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-    padding: 20px;
-    overflow: auto;
-    max-height: 600px;
+    background: var(--white); border-radius: var(--radius);
+    box-shadow: var(--shadow-md); padding:20px; overflow:auto; max-height:600px;
 }
+table { width:100%; border-collapse: collapse; min-width: 800px; }
+th, td { padding:12px; border-bottom:1px solid #eee; text-align:center; white-space:nowrap; }
+th { background: linear-gradient(90deg,var(--primary),var(--secondary)); color:#fff; }
+tr:nth-child(even) { background: #f2f2f2; }
+tr:hover { background: #e0f0ff; transition: var(--transition); }
 
-/* Table styling */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 800px;
-}
-
-th, td {
-    padding: 10px 12px;
-    border-bottom: 1px solid #eee;
-    text-align: center;
-    white-space: nowrap;
-}
-
-th {
-    background-color: var(--primary);
-    color: white;
-}
-
-tr:nth-child(even) { background-color: #f2f2f2; }
-tr:hover { background-color: #e0f0ff; }
-
-@media (max-width: 768px) {
-    .sidebar {
-        position: relative;
-        width: 100%;
-        height: auto;
-        flex-direction: row;
-        display: flex;
-        justify-content: space-around;
-        padding: 10px;
-    }
-    .main-content {
-        margin-left: 0;
-        padding: 20px;
-    }
-    table, th, td {
-        font-size: 14px;
-    }
+/* Responsive */
+@media(max-width:768px){
+    .sidebar { width:100%; height:auto; flex-direction:row; justify-content:space-around; padding:10px; }
+    .main-content { margin-left:0; padding:20px; }
+    table, th, td { font-size:14px; }
 }
 </style>
 </head>
@@ -176,11 +107,11 @@ tr:hover { background-color: #e0f0ff; }
 <aside class="sidebar">
     <h2><i class="fa fa-user"></i> Patient</h2>
     <nav>
-      <a href="patient_dashboard.php"><i class="fa fa-home"></i> Home</a>
-      <a href="bookappointment.php"><i class="fa fa-calendar-plus"></i> Book Appointment</a>
-      <a href="patientprofile.php"><i class="fa fa-id-card"></i> Profile</a>
-      <a href="payment_history.php" class="active"><i class="fa fa-credit-card"></i> Payment History</a>
-      <a href="logout.php"><i class="fa fa-sign-out-alt"></i> Logout</a>
+        <a href="patient_dashboard.php"><i class="fa fa-home"></i> Home</a>
+        <a href="bookappointment.php"><i class="fa fa-calendar-plus"></i> Book Appointment</a>
+        <a href="patientprofile.php"><i class="fa fa-id-card"></i> Profile</a>
+        <a href="payment_history.php" class="active"><i class="fa fa-credit-card"></i> Payment History</a>
+        <a href="logout.php"><i class="fa fa-sign-out-alt"></i> Logout</a>
     </nav>
 </aside>
 

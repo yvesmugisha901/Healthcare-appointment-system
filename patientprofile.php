@@ -75,6 +75,22 @@ $conn->close();
     margin-bottom: 25px;
   }
 
+  .go-back-btn {
+    display: inline-block;
+    margin-bottom: 15px;
+    padding: 8px 12px;
+    background: #007bff;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+    transition: background 0.3s;
+  }
+
+  .go-back-btn:hover {
+    background: #0056b3;
+  }
+
   form label {
     display: block;
     margin-bottom: 8px;
@@ -167,6 +183,9 @@ $conn->close();
 <body>
 
 <div class="profile-container">
+  <!-- Go Back Button -->
+  <a href="javascript:history.back()" class="go-back-btn">&larr; Go Back</a>
+
   <h2>My Profile</h2>
 
   <?php if ($message): ?>

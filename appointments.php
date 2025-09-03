@@ -36,146 +36,66 @@ function formatDateTime($datetime) {
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 :root {
-    --primary: #1e3a8a;
-    --primary-light: #3b82f6;
+    --primary: #2a9d8f;
+    --primary-dark: #1d7870;
+    --primary-light: #7fcdc3;
+    --secondary: #e76f51;
+    --neutral-dark: #264653;
+    --neutral-light: #f8f9fa;
     --success: #28a745;
-    --danger: #dc3545;
-    --bg: #f0f2f5;
-    --text: #333;
+    --pending: #ff9900;
+    --failed: #dc3545;
 }
 
-body {
-    margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background: var(--bg);
-    display: flex;
-    min-height: 100vh;
-}
+/* Reset */
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
+
+body { display:flex; min-height:100vh; background: var(--neutral-light); color: var(--neutral-dark); }
 
 /* Sidebar */
 .sidebar {
-    width: 220px;
-    background-color: var(--primary);
-    color: white;
-    padding: 25px 20px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+    width: 240px; background: var(--primary); color: #fff; height: 100vh; position: fixed; top:0; left:0;
+    padding:25px 20px; display:flex; flex-direction:column; transition:0.3s; z-index:1000;
 }
+.sidebar h2 { display:flex; align-items:center; gap:10px; margin-bottom:40px; font-size:24px; }
+.sidebar h2 i { font-size:28px; }
+.sidebar nav { display:flex; flex-direction:column; gap:10px; flex-grow:1; }
+.sidebar nav a { color:#cce5ff; text-decoration:none; padding:10px 15px; border-radius:8px; display:flex; align-items:center; gap:10px; transition:0.3s; }
+.sidebar nav a.active, .sidebar nav a:hover { background: var(--primary-dark); color:#fff; }
 
-.sidebar h2 {
-    margin-bottom: 30px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 24px;
+/* Main content */
+.main-content { flex:1; margin-left:240px; padding:30px; display:flex; flex-direction:column; align-items:center; }
+h1 { color: var(--primary); margin-bottom:20px; text-align:center; }
+
+/* Table Card */
+.table-card { background:#fff; border-radius:12px; box-shadow:0 8px 25px rgba(0,0,0,0.1); padding:20px; overflow:hidden; width:100%; max-width:900px; margin:auto; }
+.table-card table { width:100%; border-collapse: collapse; }
+.table-card thead tr { background: linear-gradient(90deg,var(--primary),var(--primary-light)); color:#fff; text-align:left; }
+.table-card th, .table-card td { padding:12px; border-bottom:1px solid #eee; font-size:14px; }
+.table-card tbody { display:block; max-height:400px; overflow-y:auto; }
+.table-card thead, .table-card tbody tr { display:table; width:100%; table-layout:fixed; }
+.table-card tbody tr:hover { background:#f1f5fb; }
+
+/* Status Colors */
+.status-pending { color: var(--pending); font-weight:600; }
+.status-completed { color: var(--success); font-weight:600; }
+.status-failed { color: var(--failed); font-weight:600; }
+.status-cancelled { color: var(--secondary); font-weight:600; }
+
+/* Scrollbar */
+.table-card tbody::-webkit-scrollbar { width:8px; }
+.table-card tbody::-webkit-scrollbar-track { background:#f8f9fa; border-radius:10px; }
+.table-card tbody::-webkit-scrollbar-thumb { background: var(--primary-light); border-radius:10px; }
+
+/* Responsive */
+@media(max-width:768px){
+    .sidebar { width:100%; height:auto; flex-direction:row; justify-content:space-around; padding:15px; }
+    .main-content{ margin-left:0; padding:20px; }
 }
-
-.sidebar h2 i { font-size: 28px; }
-
-.sidebar nav a {
-    color: #cce5ff;
-    text-decoration: none;
-    margin: 10px 0;
-    padding: 10px 12px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.3s ease;
-}
-
-.sidebar nav a.active,
-.sidebar nav a:hover {
-    background-color: var(--primary-light);
-    color: #fff;
-}
-
-.main-content {
-    flex: 1;
-    padding: 30px;
-    margin-right: 200px;
-    margin-left:10px;
-    box-sizing: border-box;
-    display: flex;             
-    flex-direction: column;     
-    align-items: center;        
-}
-
-h1 {
-    color: var(--primary);
-    margin-bottom: 20px;
-}
-
-/* Scrollable Table Card */
-.table-card {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-    padding: 20px;
-    overflow: hidden;
-    margin: 0 auto;    
-    max-width: 900px;   /* Restrict width so it’s not full screen */
-    margin-left: auto;
-    margin-right: auto;
-
-
-}
-
-.table-card table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.table-card thead tr {
-    background: linear-gradient(90deg, var(--primary), var(--primary-light));
-    color: #fff;
-    text-align: left;
-}
-
-.table-card th, .table-card td {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-    font-size: 14px;
-}
-
-.table-card tbody {
-    display: block;
-    max-height: 400px; /* Table height fixed, scrollable */
-    overflow-y: auto;
-}
-
-.table-card thead, .table-card tbody tr {
-    display: table;
-    width: 100%;
-    table-layout: fixed;
-}
-
-.table-card tbody tr:hover {
-    background-color: #f1f5fb;
-}
-
-/* Scrollbar Styling */
-.table-card tbody::-webkit-scrollbar {
-    width: 8px;
-}
-
-.table-card tbody::-webkit-scrollbar-track {
-    background: #f0f2f5;
-    border-radius: 10px;
-}
-
-.table-card tbody::-webkit-scrollbar-thumb {
-    background-color: var(--primary-light);
-    border-radius: 10px;
-}
-
 </style>
 </head>
 <body>
 
-<!-- Sidebar -->
 <aside class="sidebar">
     <h2><i class="fa fa-stethoscope"></i> HealthSys</h2>
     <nav>
@@ -187,7 +107,6 @@ h1 {
     </nav>
 </aside>
 
-<!-- Main Content -->
 <div class="main-content">
     <h1>Appointments</h1>
 
@@ -211,7 +130,7 @@ h1 {
                             <td><?= htmlspecialchars($row['patient_name']) ?></td>
                             <td><?= htmlspecialchars($row['doctor_name']) ?></td>
                             <td><?= htmlspecialchars(formatDateTime($row['appointment_datetime'])) ?></td>
-                            <td><?= ucfirst(htmlspecialchars($row['status'])) ?></td>
+                            <td class="status-<?= strtolower($row['status']) ?>"><?= ucfirst(htmlspecialchars($row['status'])) ?></td>
                             <td><?= htmlspecialchars($row['notes']) ?></td>
                         </tr>
                     <?php endwhile; ?>

@@ -55,121 +55,72 @@ while ($row = $result3->fetch_assoc()) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Admin Reports</title>
+<title>Admin Dashboard - Reports</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 <style>
-body {
-  font-family: "Segoe UI", sans-serif;
-  background: #f4f6f9;
-  margin:0; padding:0;
-}
-.container {
-  padding: 30px;
-  max-width: 1200px;
-  margin: auto;
-}
-h1 {
-  text-align: center;
-  margin-bottom: 30px;
-  color: #007BFF;
-}
-/* Smaller, compact cards */
-.card-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  margin-bottom: 30px;
+:root {
+    --primary: #2a9d8f;
+    --primary-dark: #1d7870;
+    --primary-light: #7fcdc3;
+    --secondary: #e76f51;
+    --neutral-light: #f8f9fa;
+    --neutral-dark: #264653;
+    --success: #28a745;
+    --pending: #ff9900;
+    --failed: #dc3545;
 }
 
-.card {
-  flex: 1 1 150px;
-  min-width: 120px;
-  background: #fff;
-  border-radius: 10px;
-  padding: 15px;
-  text-align: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-  transition: transform 0.2s;
-}
+/* Reset */
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
 
-.card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-}
+body { background: var(--neutral-light); color: var(--neutral-dark); }
 
-.card h2 {
-  font-size: 1.6em;
-  color: #007BFF;
-  margin-bottom: 3px;
-}
+/* Container */
+.container { max-width: 1200px; margin:auto; padding:30px; }
 
-.card p {
-  font-size: 0.9em;
-  margin: 0;
-}
+/* Heading */
+h1 { text-align:center; margin-bottom:30px; color: var(--primary); }
 
-canvas {
-  background: #fff;
-  margin: 30px 0;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+/* Cards */
+.card-container { display:flex; flex-wrap:wrap; gap:15px; justify-content:center; margin-bottom:30px; }
+.card { flex:1 1 150px; min-width:120px; background:#fff; border-radius:12px; padding:20px; text-align:center;
+       box-shadow:0 2px 6px rgba(0,0,0,0.08); transition:0.2s; }
+.card:hover { transform: translateY(-3px); box-shadow:0 4px 12px rgba(0,0,0,0.12); }
+.card h2 { font-size:1.6em; color: var(--primary); margin-bottom:5px; }
+.card p { font-size:0.95em; margin:0; }
+
+/* Charts */
+canvas { background:#fff; padding:20px; border-radius:12px; box-shadow:0 3px 10px rgba(0,0,0,0.1); margin:30px 0; }
+
+/* Table */
+.table-wrapper { max-height:400px; overflow-y:auto; margin-top:20px; border-radius:12px; box-shadow:0 3px 10px rgba(0,0,0,0.1); }
+table { width:100%; border-collapse:collapse; }
+thead { background: linear-gradient(90deg,var(--primary),var(--primary-light)); color:#fff; position:sticky; top:0; z-index:2; }
+th, td { padding:12px; text-align:left; }
+tbody tr:nth-child(even) { background:#f9fbfd; }
+tbody tr:hover { background:#eef4ff; }
+
+/* Status Colors */
+.status-scheduled, .status-pending { color: var(--pending); font-weight:600; }
+.status-completed { color: var(--success); font-weight:600; }
+.status-cancelled, .status-failed { color: var(--failed); font-weight:600; }
+
+/* PDF Button */
+button#downloadPdf { padding:12px 20px; margin:30px 0; background: var(--primary); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:15px; }
+button#downloadPdf:hover { background: var(--primary-dark); }
+
+/* Responsive */
+@media(max-width:768px){
+    .card-container { flex-direction:column; align-items:center; }
 }
-h2 {
-  margin-top: 50px;
-  margin-bottom: 15px;
-  color: #333;
-}
-.table-wrapper {
-  max-height: 400px;
-  overflow-y: auto;
-  margin-top: 20px;
-  border-radius: 12px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-thead {
-  background: #007BFF;
-  color: #fff;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-th, td {
-  padding: 14px;
-  text-align: left;
-}
-tbody tr:nth-child(even) {
-  background: #f9fbfd;
-}
-tbody tr:hover {
-  background: #eef4ff;
-}
-.status-scheduled { color: #007BFF; font-weight: 600; }
-.status-completed { color: #28a745; font-weight: 600; }
-.status-cancelled { color: #dc3545; font-weight: 600; }
-button#downloadPdf {
-  padding: 12px 20px;
-  margin: 30px 0;
-  background: #007BFF;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 15px;
-}
-button#downloadPdf:hover { background: #0056b3; }
 </style>
 </head>
 <body>
+
 <div class="container">
-<h1>Admin Reports</h1>
+<h1>Admin Dashboard - Reports</h1>
 
 <div class="card-container">
   <div class="card"><h2><?= $doctorCount ?></h2><p>Total Doctors</p></div>
@@ -217,7 +168,7 @@ const doctorCounts = doctorData.map(item => item.count);
 
 new Chart(document.getElementById('doctorChart'), {
   type:'bar',
-  data:{ labels: doctorLabels, datasets:[{label:'Appointments per Doctor', data: doctorCounts, backgroundColor:'rgba(54,162,235,0.7)', borderColor:'rgba(54,162,235,1)', borderWidth:1 }]},
+  data:{ labels: doctorLabels, datasets:[{label:'Appointments per Doctor', data: doctorCounts, backgroundColor:'rgba(42,157,143,0.7)', borderColor:'rgba(42,157,143,1)', borderWidth:1 }]},
   options:{ responsive:true, scales:{ y:{ beginAtZero:true } } }
 });
 
@@ -227,7 +178,7 @@ const dayCounts = dayData.map(item=>item.count);
 
 new Chart(document.getElementById('dailyChart'), {
   type:'line',
-  data:{ labels:dayLabels, datasets:[{label:'Appointments per Day (Last 7 Days)', data:dayCounts, backgroundColor:'rgba(0,123,255,0.2)', borderColor:'rgba(0,123,255,1)', fill:true, tension:0.3, borderWidth:2}]},
+  data:{ labels:dayLabels, datasets:[{label:'Appointments per Day (Last 7 Days)', data:dayCounts, backgroundColor:'rgba(42,157,143,0.2)', borderColor:'rgba(42,157,143,1)', fill:true, tension:0.3, borderWidth:2}]},
   options:{ responsive:true, scales:{ y:{ beginAtZero:true } } }
 });
 
@@ -264,7 +215,7 @@ document.getElementById('downloadPdf').addEventListener('click', async () => {
     head: [['Date & Time','Patient','Doctor','Status']],
     body: rows,
     theme: 'striped',
-    headStyles:{ fillColor:[0,123,255] },
+    headStyles:{ fillColor:[42,157,143] },
     styles:{ fontSize:10 }
   });
 

@@ -2,13 +2,13 @@
 session_start();
 require 'connect.php';
 
-// Check if user is admin
+// Only allow admin
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     header('Location: login.php');
-    exit;
+    exit();
 }
 
-// Handle update status form submission
+// Handle status update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_id'], $_POST['new_status'])) {
     $paymentId = intval($_POST['payment_id']);
     $newStatus = $_POST['new_status'];
@@ -22,11 +22,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_id'], $_POST[
     }
 }
 
-// Get filter values
+// Filters
 $filterStatus = $_GET['status'] ?? '';
 $filterMethod = $_GET['method'] ?? '';
 
-// Build SQL query with optional filters
 $sql = "SELECT p.id, p.appointment_id, p.amount, p.status, p.transaction_id, p.payment_date, p.payment_method,
         a.appointment_datetime, u_patient.name AS patient_name, u_doctor.name AS doctor_name
         FROM payments p
@@ -76,153 +75,71 @@ $result = $stmt->get_result();
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 :root {
-    --primary: #1e3a8a;
-    --primary-light: #3b82f6;
+    --primary: #2a9d8f;
+    --primary-dark: #1d7870;
+    --primary-light: #7fcdc3;
+    --secondary: #e76f51;
+    --neutral-dark: #264653;
+    --neutral-light: #f8f9fa;
     --success: #28a745;
-    --danger: #dc3545;
-    --bg: #f0f2f5;
-    --text: #333;
+    --pending: #ff9900;
 }
 
-body {
-    margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background: var(--bg);
-    display: flex;
-    min-height: 100vh;
-}
+/* Reset */
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
+
+body { display:flex; min-height:100vh; background: var(--neutral-light); color: var(--neutral-dark); }
 
 /* Sidebar */
 .sidebar {
-    width: 220px;
-    background-color: var(--primary);
-    color: white;
-    padding: 25px 20px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+    width: 240px; background: var(--primary); color: #fff; height: 100vh; position: fixed; top:0; left:0;
+    padding:25px 20px; display:flex; flex-direction:column; transition:0.3s; z-index:1000;
 }
-
-.sidebar h2 {
-    margin-bottom: 30px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 24px;
-}
-
-.sidebar h2 i { font-size: 28px; }
-
-.sidebar nav a {
-    color: #cce5ff;
-    text-decoration: none;
-    margin: 10px 0;
-    padding: 10px 12px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.3s ease;
-}
-
-.sidebar nav a.active,
-.sidebar nav a:hover {
-    background-color: var(--primary-light);
-    color: #fff;
-}
+.sidebar h2 { display:flex; align-items:center; gap:10px; margin-bottom:40px; font-size:24px; }
+.sidebar h2 i { font-size:28px; }
+.sidebar nav { display:flex; flex-direction:column; gap:10px; flex-grow:1; }
+.sidebar nav a { color:#cce5ff; text-decoration:none; padding:10px 15px; border-radius:8px; display:flex; align-items:center; gap:10px; transition:0.3s; }
+.sidebar nav a.active, .sidebar nav a:hover { background: var(--primary-dark); color:#fff; }
 
 /* Main content */
-.main-content {
-    flex: 1;
-    padding: 30px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-h1 {
-    color: var(--primary);
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-/* Scrollable Table Card */
-.table-card {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-    padding: 20px;
-    overflow-x: auto;
-    max-width: 100%;
-}
-
-.table-card table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 1000px;
-    table-layout: fixed;
-}
-
-.table-card thead tr {
-    background: linear-gradient(90deg, var(--primary), var(--primary-light));
-    color: #fff;
-    text-align: center;
-}
-
-.table-card th, .table-card td {
-    padding: 10px 12px;
-    border-bottom: 1px solid #eee;
-    font-size: 14px;
-    text-align: center;
-    white-space: normal;
-    word-wrap: break-word;
-}
-
-/* Specific widths for long columns */
-.table-card th:nth-child(8), .table-card td:nth-child(8) { width: 150px; } /* Transaction ID */
-.table-card th:nth-child(9), .table-card td:nth-child(9) { width: 120px; } /* Payment Date */
-
-.table-card tbody {
-    display: block;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.table-card thead, .table-card tbody tr {
-    display: table;
-    width: 100%;
-    table-layout: fixed;
-}
-
-.table-card tbody tr:hover {
-    background-color: #f1f5fb;
-}
-
-/* Scrollbar Styling */
-.table-card tbody::-webkit-scrollbar { width: 8px; }
-.table-card tbody::-webkit-scrollbar-track { background: #f0f2f5; border-radius: 10px; }
-.table-card tbody::-webkit-scrollbar-thumb { background-color: var(--primary-light); border-radius: 10px; }
-
-/* Status update select */
-.table-card select {
-    padding: 5px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    cursor: pointer;
-    font-weight: bold;
-}
-.table-card select:hover { border-color: var(--primary-light); }
+.main-content { flex:1; margin-left:240px; padding:30px; display:flex; flex-direction:column; align-items:center; }
+h1 { color: var(--primary); margin-bottom:20px; text-align:center; }
 
 /* Filter Form */
-.filter-form { margin-bottom: 20px; text-align: center; }
-.filter-form select { margin: 0 10px; font-weight: bold; }
+.filter-form { margin-bottom:20px; text-align:center; }
+.filter-form select { margin: 0 10px; font-weight:bold; padding:5px; }
+
+/* Table Card */
+.table-card { background:#fff; border-radius:12px; box-shadow:0 8px 25px rgba(0,0,0,0.1); padding:20px; overflow-x:auto; width:100%; }
+.table-card table { width:100%; border-collapse: collapse; min-width: 1000px; table-layout: fixed; }
+.table-card thead tr { background: linear-gradient(90deg,var(--primary),var(--primary-light)); color:#fff; text-align:center; }
+.table-card th, .table-card td { padding:10px; text-align:center; border-bottom:1px solid #eee; font-size:14px; word-wrap: break-word; }
+.table-card tbody { display:block; max-height:400px; overflow-y:auto; }
+.table-card thead, .table-card tbody tr { display:table; width:100%; table-layout:fixed; }
+.table-card tbody tr:hover { background:#f1f5fb; }
+.table-card select { padding:5px; border-radius:5px; border:1px solid #ccc; cursor:pointer; font-weight:bold; }
+.table-card select:hover { border-color: var(--primary-light); }
+
+/* Status Colors */
+.status-pending { color: var(--pending); font-weight:600; }
+.status-completed { color: var(--success); font-weight:600; }
+.status-failed { color: var(--secondary); font-weight:600; }
+.status-refunded { color: var(--primary-light); font-weight:600; }
+
+/* Scrollbar */
+.table-card tbody::-webkit-scrollbar { width:8px; }
+.table-card tbody::-webkit-scrollbar-track { background:#f8f9fa; border-radius:10px; }
+.table-card tbody::-webkit-scrollbar-thumb { background: var(--primary-light); border-radius:10px; }
+
+/* Responsive */
+@media(max-width:768px){
+    .sidebar { width:100%; height:auto; flex-direction:row; justify-content:space-around; padding:15px; }
+    .main-content{ margin-left:0; padding:20px; }
+}
 </style>
 </head>
 <body>
 
-<!-- Sidebar -->
 <aside class="sidebar">
     <h2><i class="fa fa-stethoscope"></i> HealthSys</h2>
     <nav>
@@ -235,26 +152,24 @@ h1 {
     </nav>
 </aside>
 
-<!-- Main Content -->
 <div class="main-content">
     <h1>Payments Management</h1>
 
-    <!-- Filter Form -->
     <form class="filter-form" method="GET" action="">
-        <label for="status">Filter by Status:</label>
+        <label for="status">Status:</label>
         <select name="status" id="status" onchange="this.form.submit()">
             <option value="">-- All --</option>
-            <?php foreach ($allowedStatuses as $statusOption): ?>
+            <?php foreach($allowedStatuses as $statusOption): ?>
                 <option value="<?= $statusOption ?>" <?= $filterStatus === $statusOption ? 'selected' : '' ?>>
                     <?= ucfirst($statusOption) ?>
                 </option>
             <?php endforeach; ?>
         </select>
 
-        <label for="method">Filter by Payment Method:</label>
+        <label for="method">Method:</label>
         <select name="method" id="method" onchange="this.form.submit()">
             <option value="">-- All --</option>
-            <?php foreach ($allowedMethods as $methodOption): ?>
+            <?php foreach($allowedMethods as $methodOption): ?>
                 <option value="<?= $methodOption ?>" <?= $filterMethod === $methodOption ? 'selected' : '' ?>>
                     <?= $methodOption ?>
                 </option>
@@ -262,7 +177,6 @@ h1 {
         </select>
     </form>
 
-    <!-- Table Card -->
     <div class="table-card">
         <table>
             <thead>
@@ -271,7 +185,7 @@ h1 {
                     <th>Appointment</th>
                     <th>Patient</th>
                     <th>Doctor</th>
-                    <th>Amount (USD)</th>
+                    <th>Amount</th>
                     <th>Method</th>
                     <th>Status</th>
                     <th>Transaction ID</th>
@@ -281,23 +195,23 @@ h1 {
             </thead>
             <tbody>
                 <?php if($result->num_rows > 0): ?>
-                    <?php while ($row = $result->fetch_assoc()): ?>
+                    <?php while($row = $result->fetch_assoc()): ?>
                         <tr>
                             <td><?= $row['id'] ?></td>
                             <td><?= date('M d, Y H:i', strtotime($row['appointment_datetime'])) ?></td>
                             <td><?= htmlspecialchars($row['patient_name']) ?></td>
                             <td><?= htmlspecialchars($row['doctor_name']) ?></td>
-                            <td>$<?= number_format($row['amount'], 2) ?></td>
+                            <td>$<?= number_format($row['amount'],2) ?></td>
                             <td><?= htmlspecialchars($row['payment_method']) ?></td>
-                            <td><?= ucfirst($row['status']) ?></td>
+                            <td class="status-<?= $row['status'] ?>"><?= ucfirst($row['status']) ?></td>
                             <td><?= htmlspecialchars($row['transaction_id']) ?></td>
                             <td><?= date('M d, Y H:i', strtotime($row['payment_date'])) ?></td>
                             <td>
-                                <form method="POST" style="margin:0;">
+                                <form method="POST">
                                     <input type="hidden" name="payment_id" value="<?= $row['id'] ?>">
                                     <select name="new_status" onchange="this.form.submit()">
                                         <?php foreach($allowedStatuses as $statusOption): ?>
-                                            <option value="<?= $statusOption ?>" <?= $row['status'] === $statusOption ? 'selected' : '' ?>>
+                                            <option value="<?= $statusOption ?>" <?= $row['status']===$statusOption?'selected':'' ?>>
                                                 <?= ucfirst($statusOption) ?>
                                             </option>
                                         <?php endforeach; ?>

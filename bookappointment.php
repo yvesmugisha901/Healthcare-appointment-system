@@ -137,9 +137,12 @@ $conn->close();
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Book Appointment - Healthcare System</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-body { font-family: Arial, sans-serif; background: #f0f4f8; padding: 30px; }
-.container { max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);}
+/* Sidebar-safe styling */
+body { font-family: Arial, sans-serif; background: #f0f4f8; margin:0; display:flex; }
+.main-content { flex:1; padding:30px; min-height:100vh; box-sizing:border-box; }
+.container { max-width:600px; margin:auto; background:white; padding:25px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.1);}
 h1 { text-align:center; margin-bottom:25px; }
 label { display:block; margin-top:15px; font-weight:bold; }
 select, input, textarea { width:100%; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #ccc; font-size:16px;}
@@ -155,6 +158,9 @@ button:hover { background:#0056b3; }
 </head>
 <body>
 
+<?php include('sidebar.php'); ?>
+
+<div class="main-content">
 <div class="container">
 <h1>Book Appointment</h1>
 <p>Welcome, <?=htmlspecialchars($patientName)?>. Fill the form below.</p>
@@ -214,6 +220,7 @@ button:hover { background:#0056b3; }
 <?php if($paymentLink):?>
 <div class="payment-link"><a href="<?=htmlspecialchars($paymentLink)?>">Click here to Pay Now</a></div>
 <?php endif;?>
+</div>
 </div>
 
 <script>

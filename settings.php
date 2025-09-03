@@ -11,10 +11,10 @@ $user_id = $_SESSION['user_id'];
 $success = $error = '';
 
 // Fetch current user info
-$stmt = $conn->prepare("SELECT name, email, password FROM users WHERE id = ?");
+$stmt = $conn->prepare("SELECT name, email, password, role FROM users WHERE id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
-$stmt->bind_result($name, $email, $hashedPassword);
+$stmt->bind_result($name, $email, $hashedPassword, $role);
 $stmt->fetch();
 $stmt->close();
 
@@ -52,252 +52,237 @@ $conn->close();
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Settings - Healthcare System</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-  body, html {
-    margin: 0; padding: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f5f7fa;
-    color: #333;
-    transition: background-color 0.3s, color 0.3s;
-  }
-  body.dark {
-    background-color: #121212;
-    color: #eee;
-  }
-  a {
-    color: #007bff;
-    text-decoration: none;
-  }
-  a:hover {
-    text-decoration: underline;
-  }
+:root {
+    --primary: #2a9d8f;        /* main green-teal */
+    --primary-dark: #1d7870;   /* hover darker green */
+    --primary-light: #7fcdc3;  /* light green hover */
+    --secondary: #e76f51;      /* coral accent */
+    --neutral-dark: #264653;   /* main text */
+    --neutral-medium: #6c757d; /* secondary text */
+    --neutral-light: #f8f9fa;  /* background */
+    --white: #ffffff;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+    --radius: 10px;
+    --transition: all 0.3s ease;
+}
 
-  .container {
-    max-width: 900px;
-    margin: 40px auto;
-    padding: 0 20px;
-  }
-  h1 {
-    text-align: center;
-    margin-bottom: 40px;
-  }
-  .message {
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: var(--neutral-light);
+    display: flex;
+    min-height: 100vh;
+    color: var(--neutral-dark);
+}
+
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    background-color: var(--primary);
+    color: var(--white);
+    padding: 25px 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+.sidebar h2 {
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 24px;
+}
+.sidebar h2 i { font-size: 28px; }
+.sidebar nav a {
+    color: #ffffff;
+    text-decoration: none;
+    margin: 10px 0;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: var(--transition);
+}
+.sidebar nav a.active,
+.sidebar nav a:hover {
+    background-color: var(--primary-light);
+    color: var(--neutral-dark);
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--neutral-light);
+}
+
+/* Settings Styles */
+h1 { color: var(--primary); margin-bottom: 30px; }
+
+.message {
     max-width: 600px;
     margin: 10px auto 30px;
     padding: 15px 20px;
-    border-radius: 6px;
+    border-radius: var(--radius);
     text-align: center;
-  }
-  .success {
-    background-color: #d4edda;
-    color: #155724;
-    border-left: 6px solid #28a745;
-  }
-  .error {
-    background-color: #f8d7da;
-    color: #721c24;
-    border-left: 6px solid #dc3545;
-  }
+}
+.message.success { background-color: #d4f1ed; color: var(--primary-dark); border-left: 6px solid var(--primary); }
+.message.error { background-color: #f8d7da; color: var(--secondary); border-left: 6px solid var(--secondary); }
 
-  .settings-grid {
+.settings-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 40px;
     justify-content: space-between;
-  }
-  .card {
-    background: white;
+}
+.card {
+    background: var(--white);
     padding: 25px 30px;
-    border-radius: 8px;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
     width: 100%;
     max-width: 400px;
     box-sizing: border-box;
-    transition: background-color 0.3s, color 0.3s;
-  }
-  body.dark .card {
-    background: #222;
-    color: #ddd;
-  }
-  .card h2 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    font-weight: 700;
-  }
-  label {
-    display: block;
-    margin: 12px 0 6px;
-    font-weight: 600;
-  }
-  input[type="text"],
-  input[type="email"],
-  input[type="password"] {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 1rem;
-  }
-  body.dark input[type="text"],
-  body.dark input[type="email"],
-  body.dark input[type="password"] {
-    background-color: #333;
-    border-color: #555;
-    color: #eee;
-  }
-  button {
-    margin-top: 20px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 12px 0;
-    width: 100%;
-    font-size: 1rem;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: 700;
-  }
-  button:hover {
-    background-color: #0056b3;
-  }
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.card h2 { margin-top:0; margin-bottom:20px; font-weight:700; color: var(--primary); }
 
-  .profile-link {
-    display: inline-block;
-    margin-bottom: 30px;
-    font-weight: 700;
-    font-size: 1.1rem;
-  }
+label { display: block; margin:12px 0 6px; font-weight:600; }
+input[type="text"], input[type="email"], input[type="password"] {
+    width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:5px; font-size:1rem;
+}
+button {
+    margin-top:20px; background-color: var(--primary); color: var(--white);
+    border:none; padding:12px 0; width:100%; font-size:1rem; border-radius:5px;
+    cursor:pointer; font-weight:700; transition: background 0.3s;
+}
+button:hover { background-color: var(--primary-dark); }
 
-  .toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 26px;
-  }
-  .toggle-switch input {
-    opacity: 0;
-    width: 0; height: 0;
-  }
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #ccc;
-    border-radius: 26px;
-    transition: .4s;
-  }
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 20px;
-    width: 20px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    border-radius: 50%;
-    transition: .4s;
-  }
-  input:checked + .slider {
-    background-color: #007bff;
-  }
-  input:checked + .slider:before {
-    transform: translateX(24px);
-  }
+.profile-link {
+    display:inline-block; margin-bottom:30px; font-weight:700; font-size:1.1rem; color:var(--primary);
+}
 
-  /* Responsive */
-  @media (max-width: 960px) {
-    .settings-grid {
-      flex-direction: column;
-      align-items: center;
-    }
-    .card {
-      max-width: 100%;
-    }
-  }
+.toggle-switch {
+    position: relative; display: inline-block; width:50px; height:26px;
+}
+.toggle-switch input { opacity:0; width:0; height:0; }
+.slider {
+    position: absolute; cursor:pointer; top:0; left:0; right:0; bottom:0;
+    background-color: #ccc; border-radius:26px; transition:.4s;
+}
+.slider:before {
+    position: absolute; content:""; height:20px; width:20px; left:3px; bottom:3px;
+    background-color:white; border-radius:50%; transition:.4s;
+}
+input:checked + .slider { background-color: var(--primary); }
+input:checked + .slider:before { transform: translateX(24px); }
+
+/* Responsive */
+@media(max-width:960px) {
+    .settings-grid { flex-direction: column; align-items: center; }
+    .card { max-width: 100%; }
+    .sidebar { width: 100%; flex-direction: row; overflow-x: auto; }
+}
 </style>
 </head>
 <body>
 
-<div class="container">
+<!-- Sidebar -->
+<aside class="sidebar">
+    <h2><i class="fa fa-stethoscope"></i> HealthSys</h2>
+    <nav>
+        <a href="admin_dashboard.php"><i class="fa fa-tachometer-alt"></i> Dashboard</a>
+        <?php if($role === 'admin'): ?>
+        <a href="manage_users.php"><i class="fa fa-users"></i> Manage Users</a>
+        <?php endif; ?>
+        <a href="appointments.php"><i class="fa fa-calendar-check"></i> Appointments</a>
+        <a href="settings.php" class="active"><i class="fa fa-cog"></i> Settings</a>
+        <a href="logout.php"><i class="fa fa-sign-out-alt"></i> Logout</a>
+    </nav>
+</aside>
 
-  <h1>Settings</h1>
+<!-- Main Content -->
+<div class="main-content">
+    <h1>Settings</h1>
 
-  <?php if ($success): ?>
-    <div class="message success"><?php echo htmlspecialchars($success); ?></div>
-  <?php elseif ($error): ?>
-    <div class="message error"><?php echo htmlspecialchars($error); ?></div>
-  <?php endif; ?>
+    <?php if ($success): ?>
+        <div class="message success"><?php echo htmlspecialchars($success); ?></div>
+    <?php elseif ($error): ?>
+        <div class="message error"><?php echo htmlspecialchars($error); ?></div>
+    <?php endif; ?>
 
-  <!-- Profile link -->
-  <a href="patient_profile.php" class="profile-link">➡️ Edit Profile Information</a>
+    <a href="patientprofile.php" class="profile-link">➡️ Edit Profile Information</a>
 
-  <div class="settings-grid">
+    <div class="settings-grid">
 
-    <!-- Change Password -->
-    <div class="card">
-      <h2>Change Password</h2>
-      <form method="POST" action="">
-        <label for="current_password">Current Password</label>
-        <input type="password" id="current_password" name="current_password" required>
+        <div class="card">
+            <h2>Change Password</h2>
+            <form method="POST" action="">
+                <label for="current_password">Current Password</label>
+                <input type="password" id="current_password" name="current_password" required>
 
-        <label for="new_password">New Password</label>
-        <input type="password" id="new_password" name="new_password" required>
+                <label for="new_password">New Password</label>
+                <input type="password" id="new_password" name="new_password" required>
 
-        <label for="confirm_password">Confirm New Password</label>
-        <input type="password" id="confirm_password" name="confirm_password" required>
+                <label for="confirm_password">Confirm New Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required>
 
-        <button type="submit" name="change_password">Update Password</button>
-      </form>
+                <button type="submit" name="change_password">Update Password</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Privacy & Legal</h2>
+            <p><a href="privacy_policy.php" target="_blank">Privacy Policy</a></p>
+            <p><a href="terms_conditions.php" target="_blank">Terms & Conditions</a></p>
+            <p><a href="help.php" target="_blank">Help & Support</a></p>
+        </div>
+
+        <div class="card">
+            <h2>Notifications</h2>
+            <label class="toggle-switch">
+                <input type="checkbox" id="dark_mode_toggle" />
+                <span class="slider"></span>
+            </label>
+            <span style="margin-left: 10px;">Enable Dark Mode</span>
+        </div>
+
+        <div class="card" style="text-align:center;">
+            <h2>Account</h2>
+            <a href="logout.php" style="color: var(--secondary); font-weight:700;">Logout</a>
+        </div>
+
     </div>
-
-    <!-- Privacy & Legal -->
-    <div class="card">
-      <h2>Privacy & Legal</h2>
-      <p><a href="privacy_policy.php" target="_blank">Privacy Policy</a></p>
-      <p><a href="terms_conditions.php" target="_blank">Terms & Conditions</a></p>
-      <p><a href="help.php" target="_blank">Help & Support</a></p>
-    </div>
-
-    <!-- Notifications -->
-    <div class="card">
-      <h2>Notifications</h2>
-      <label class="toggle-switch">
-        <input type="checkbox" id="dark_mode_toggle" />
-        <span class="slider"></span>
-      </label>
-      <span style="margin-left: 10px;">Enable Dark Mode</span>
-    </div>
-
-    <!-- Logout -->
-    <div class="card" style="text-align: center;">
-      <h2>Account</h2>
-      <a href="logout.php" style="color: #dc3545; font-weight: 700;">Logout</a>
-    </div>
-
-  </div>
 </div>
 
 <script>
-  // Dark mode toggle: save preference in localStorage and apply on load
-  const toggle = document.getElementById('dark_mode_toggle');
-  const body = document.body;
+const toggle = document.getElementById('dark_mode_toggle');
+const body = document.body;
 
-  // Load saved preference
-  if(localStorage.getItem('darkMode') === 'enabled') {
+if(localStorage.getItem('darkMode') === 'enabled') {
     body.classList.add('dark');
     toggle.checked = true;
-  }
+}
 
-  toggle.addEventListener('change', () => {
+toggle.addEventListener('change', () => {
     if(toggle.checked) {
-      body.classList.add('dark');
-      localStorage.setItem('darkMode', 'enabled');
+        body.classList.add('dark');
+        localStorage.setItem('darkMode','enabled');
     } else {
-      body.classList.remove('dark');
-      localStorage.setItem('darkMode', 'disabled');
+        body.classList.remove('dark');
+        localStorage.setItem('darkMode','disabled');
     }
-  });
+});
 </script>
-
 </body>
 </html>
